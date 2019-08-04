@@ -1,0 +1,9 @@
+alias x R0;
+x = 1;
+while(x <= 10) do
+	if(x%2 != 0) then
+		print x;
+		breakpoint;
+	endif;
+	x = x + 1;
+endwhile;

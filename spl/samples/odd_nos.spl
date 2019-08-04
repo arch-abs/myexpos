@@ -1,0 +1,8 @@
+alias x R0;
+x = 1;
+while(x <= 20) do
+	if(x%2 != 0) then
+		print x;
+	endif;
+	x = x + 1;
+endwhile;

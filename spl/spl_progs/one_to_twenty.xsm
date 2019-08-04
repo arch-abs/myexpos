@@ -1,0 +1,10 @@
+mov R0, 1
+mov R1, 21
+mov R3, R0
+LT R3, R1
+JZ R3, 530
+mov P1, R0
+OUT
+INR R0
+JMP 516
+HALT
