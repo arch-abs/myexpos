@@ -1,0 +1,17 @@
+alias x R0;
+alias i R1;
+alias j R2;
+alias flag R3;
+alias y R4;
+alias z R5;
+
+j = 1;
+i=13;
+while(j<(i+1)) do
+	z = i%j;
+	if(z==0) then
+		print j;
+	endif;
+	j = j+1;
+endwhile;
+

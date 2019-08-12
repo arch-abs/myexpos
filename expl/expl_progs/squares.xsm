@@ -1,0 +1,43 @@
+0
+2056
+0
+0
+0
+0
+0
+0
+MOV R0, 1
+MOV R2, 5
+GE R2, R0
+JZ R2, 2110
+MOV R1, R0
+MUL R1, R0
+
+PUSH R0 //pushing user reg context
+PUSH R1
+PUSH R2
+
+MOV R0, 5 //pushing sys call num and arguments
+MOV R2, -2
+PUSH R0
+PUSH R2
+PUSH R1
+PUSH R0
+
+PUSH R0 //pushing empty space for return value
+INT 7
+
+POP R1 //pop out return value and ignore
+
+POP R1 //pop out sys call num and arguments and ignore
+POP R1
+POP R1
+POP R1
+
+POP R2 //restoring user reg context
+POP R1
+POP R0
+
+INR R0
+JMP 2058
+INT 10

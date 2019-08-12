@@ -1,0 +1,10 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+backup;
+print "Sample Timer...!!!";
+print "Current user process ID is...";
+print  [SYSTEM_STATUS_TABLE + 1];
+print "(printed from kernel mode from time ISR)";
+restore;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE]*16) + 13];
+ireturn;
