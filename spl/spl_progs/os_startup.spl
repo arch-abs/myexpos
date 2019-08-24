@@ -6,9 +6,11 @@
 loadi(16, 29);
 loadi(17, 30);
 
+//load timer interrupt routoine from disk to memory
 loadi(4, 17);
 loadi(5, 18);
 
+//load library code from disk to memory
 loadi(63, 13);
 loadi(64, 14);
 
