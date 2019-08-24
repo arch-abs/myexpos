@@ -1,6 +1,10 @@
-[PROCESS_TABLE + 11] = 80;
-[PROCESS_TABLE + 1] = 0;
-[SYSTEM_STATUS_TABLE + 1] = 0;
+//[PROCESS_TABLE + 11] = 80;
+//[PROCESS_TABLE + 1] = 0;
+[SYSTEM_STATUS_TABLE + 1] = 1;
+
+//loading idle code from disk to mem
+loadi(69, 11);
+loadi(70, 12);
 
 //loading int7 from disk to mem
 loadi(16, 29);
@@ -20,7 +24,48 @@ loadi(22, 35);
 loadi(23, 36);
 loadi(2, 15);
 loadi(3, 16);
+
+//setting up page table for idle
 PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+[PTBR+0] = -1;
+[PTBR+1] = "0000";
+[PTBR+2] = -1;
+[PTBR+3] = "0000";
+
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
+
+[PTBR+8] = 69;
+[PTBR+9] = "0100";
+[PTBR+10] = 70;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+[PTBR+16] = 81;
+[PTBR+17] = "0110";
+[PTBR+18] = -1;
+[PTBR+19] = "0000";
+
+[81*512] = [69*512 + 1];
+
+//setting up process table for idle
+[PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 4] = READY;
+[PROCESS_TABLE + 11] = 82;
+[PROCESS_TABLE + 12] = 0;
+[PROCESS_TABLE + 13] = 8*512;
+[PROCESS_TABLE + 14] = PTBR;
+[PROCESS_TABLE + 15] = PTLR;
+
+//setting up page table for init
+PTBR = PAGE_TABLE_BASE + 20;
 PTLR = 10;
 
 [PTBR+0] = 63;
@@ -46,6 +91,18 @@ PTLR = 10;
 [PTBR+17] = "0110";
 [PTBR+18] = 77;
 [PTBR+19] = "0110";
+
+//setting up process table for init
+[PROCESS_TABLE + 16 + 1] = 1;
+[PROCESS_TABLE + 16 + 4] = RUNNING;
+[PROCESS_TABLE + 16 + 11] = 80;
+[PROCESS_TABLE + 16 + 12] = 0;
+[PROCESS_TABLE + 16 + 13] = 8*512;
+[PROCESS_TABLE + 16 + 14] = PTBR;
+[PROCESS_TABLE + 16 + 15] = PTLR;
+
 [76*512] = [65*512 + 1];
 SP = 8*512;
+PTBR = PAGE_TABLE_BASE + 20;
+PTLR = 10;
 ireturn;
