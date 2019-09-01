@@ -28,14 +28,36 @@ loadi(23, 36);
 loadi(2, 15);
 loadi(3, 16);
 
+
+
+
+
+
+
 //---------------------------MODULES LOADING----------------------------
+
 //boot module loaded in os_startup
 
 //load mod_5 SCHEDULER
 loadi(50, 63);
 loadi(51, 64);
 
+//load mod_0 RESOURCE_MANAGER
+loadi(40, 53);
+loadi(41, 54);
+
+//load mod_4 DEVICE_MANAGER
+loadi(48, 61);
+loadi(49, 62);	
+
 //----------------------DONE MODULE LOADING-----------------------------
+
+
+
+
+
+
+
 
 //setting up page table for idle
 //PTBR = PAGE_TABLE_BASE;
