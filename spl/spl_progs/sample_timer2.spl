@@ -1,44 +1,58 @@
-breakpoint;
+//breakpoint;	
 
-alias currentPID R0;
-alias process_table_entry R1;
-alias newPID R2;
-alias new_process_table R3;
+//alias currentPID R0;
+//alias process_table_entry R1;
+//alias newPID R2;
+//alias new_process_table R3;
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
-SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;
+SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;	//NOTE OFFSET NOT ADDED SINCE WE ARE STARTING AGAIN SO KERNEL STACK EMPTY AND KPTR MIGHT BE GARBAGE FROM PREVIOUS CONTEXT SWITCH
 backup;
 
-currentPID = [SYSTEM_STATUS_TABLE + 1];
-process_table_entry = PROCESS_TABLE + currentPID*16;
+//currentPID = [SYSTEM_STATUS_TABLE + 1];
+//process_table_entry = PROCESS_TABLE + currentPID*16;
 
-[process_table_entry + 12] = SP%512;
-[process_table_entry + 14] = PTBR;
-[process_table_entry + 15] = PTLR;
-[process_table_entry + 4] = READY;
+//[process_table_entry + 12] = SP%512;
+//[process_table_entry + 14] = PTBR;
+//[process_table_entry + 15] = PTLR;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = READY;
 
-if(currentPID == 0) then
-	newPID = 1;
-else
-	newPID = 0;
-endif;
-new_process_table = PROCESS_TABLE + newPID*16;
+alias counter R0;
+counter = 0;
+while(counter < 16) do
+	if([PROCESS_TABLE + 16*counter + 4] != TERMINATED) then
+		[PROCESS_TABLE + 16*counter + 0] = [PROCESS_TABLE + 16*counter + 0] + 1; 
+	endif;
+	counter = counter + 1;
+endwhile;
 
-SP = [new_process_table + 11]*512 + [new_process_table + 12];
-PTBR = [new_process_table + 14];
-PTLR = [new_process_table + 15];
-[SYSTEM_STATUS_TABLE + 1] = newPID;
 
-if([new_process_table + 4] == CREATED) then
-	[new_process_table + 4] = RUNNING;
-	SP = [new_process_table + 13];
-	breakpoint;
-	ireturn;
-endif;
+call MOD_5;
+//if(currentPID == 0) then
+//	newPID = 1;
+//else
+//	newPID = 0;
+//endif;
+//new_process_table = PROCESS_TABLE + newPID*16;
 
-[new_process_table + 4] = RUNNING;
+//SP = [new_process_table + 11]*512 + [new_process_table + 12];
+//PTBR = [new_process_table + 14];
+//PTLR = [new_process_table + 15];
+//[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+//if([new_process_table + 4] == CREATED) then
+//	[new_process_table + 4] = RUNNING;
+//	SP = [new_process_table + 13];
+//	breakpoint;
+//	ireturn;
+//endif;
+
+//[new_process_table + 4] = RUNNING;
 restore;
+
+
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 9] = 0;
 
 
 //print "Sample Timer...!!!";

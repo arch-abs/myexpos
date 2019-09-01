@@ -1,0 +1,50 @@
+alias currPID R0;
+alias curr_process_table R1;
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+multipush (BP);
+curr_process_table = PROCESS_TABLE + currPID*16;
+[curr_process_table + 12] = SP%512;
+[curr_process_table + 14] = PTBR;
+[curr_process_table + 15] = PTLR;
+
+alias counter R2;
+alias newPID R3;
+alias new_process_table R4;
+
+counter = currPID + 1;
+newPID = 0;
+while(counter != currPID) do
+	if(counter==16) then
+		counter = 1;
+	endif;
+	new_process_table = PROCESS_TABLE + counter*16;
+	if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY) then
+		newPID = counter;
+		break;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+if(newPID == 0 && [curr_process_table + 4]==READY) then
+	newPID = currPID;
+endif;
+
+new_process_table = PROCESS_TABLE + newPID*16;
+
+SP = [new_process_table + 11]*512 + [new_process_table + 12];
+PTBR = [new_process_table + 14];
+PTLR = [new_process_table + 15];
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+if([new_process_table + 4] == CREATED) then
+	SP = [new_process_table + 13];
+	[new_process_table + 4] = RUNNING;
+	[new_process_table + 9] = 0;
+	ireturn;
+endif;
+
+[new_process_table + 4] = RUNNING;
+multipop (BP);
+
+return;

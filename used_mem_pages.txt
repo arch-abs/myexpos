@@ -1,0 +1,32 @@
+76 init stack
+77
+
+78 init heap
+79
+
+80 init user area
+
+81 idle stack
+
+82 idle user area
+
+83 exec ev_num loaded
+
+84 exec ev_num stack
+85
+
+86 exec ev_num heap
+87
+
+88 exec user area
+
+
+89 exec prime loaded
+
+90 exec prime stack
+91
+
+92 exec prime heap
+93
+
+94 exec prime area
