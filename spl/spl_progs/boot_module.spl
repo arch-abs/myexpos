@@ -170,9 +170,54 @@ PTLR = 10;
 
 
 
+//-------------------------EXEC primes loading and setup-------------------------
+
+//loading exec primes from disk to mem
+loadi(89, 70);
+
+//setting up page table for exec primw
+PTBR = PAGE_TABLE_BASE + 60;
+PTLR = 10;
+
+[PTBR + 0] = 63;
+[PTBR + 1] = "0100";
+[PTBR + 2] = 64;
+[PTBR + 3] = "0100";
+
+[PTBR + 4] = 92;
+[PTBR + 5] = "0110";
+[PTBR + 6] = 93;
+[PTBR + 7] = "0110";
+
+[PTBR + 8] = 89;
+[PTBR + 9] = "0100";
+[PTBR + 10] = -1;
+[PTBR + 11] = "0000";
+[PTBR + 12] = -1;
+[PTBR + 13] = "0000";
+[PTBR + 14] = -1;
+[PTBR + 15] = "0000";
+
+[PTBR + 16] = 90;
+[PTBR + 17] = "0110";
+[PTBR + 18] = 91;
+[PTBR + 19] = "0110";
+
+//set up process table for exec primes
+[PROCESS_TABLE + 48 + 1] = 3;
+[PROCESS_TABLE + 48 + 4] = CREATED;
+[PROCESS_TABLE + 48 + 11] = 94;
+[PROCESS_TABLE + 48 + 12] = 0;
+[PROCESS_TABLE + 48 + 13] = 8*512;
+[PROCESS_TABLE + 48 + 14] = PTBR;
+[PROCESS_TABLE + 48 + 15] = PTLR;
+
+[90*512] = [89*512 + 1];
+//------------------------DONE setting up EXEC ev_num-------------------------
+
 
 //--------------SETTING UNUSED PROCESS TABLE STATE AS TERMINATED--------------
-[PROCESS_TABLE + 48 + 4] = TERMINATED;
+//[PROCESS_TABLE + 48 + 4] = TERMINATED;
 [PROCESS_TABLE + 64 + 4] = TERMINATED;
 [PROCESS_TABLE + 80 + 4] = TERMINATED;
 [PROCESS_TABLE + 96 + 4] = TERMINATED;
