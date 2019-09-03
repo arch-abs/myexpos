@@ -30,7 +30,7 @@ if(fileDescriptor != -1) then
 
 else
 	physicalPageNum = [PTBR + 2*((userSP-3)/512)];
-	offset = (userSP-3)%4;
+	offset = (userSP-3)%512;
 	wordStoreAddress = [physicalPageNum*512 + offset];
 
 	multipush (R0, R1, R2, R3, R4, R5, R6);

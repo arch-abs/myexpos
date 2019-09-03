@@ -35,3 +35,5 @@ if(functionNum == 9) then
 	
 	return;
 endif;
+
+return;

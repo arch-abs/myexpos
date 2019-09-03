@@ -3,7 +3,6 @@ decl
 enddecl
 
 int gcd(int a, int b){
-
 decl
 	int ret;
 enddecl
@@ -27,6 +26,7 @@ enddecl
 begin	
 	breakpoint;
 	x = exposcall("Read", -1, a);
+	breakpoint;
 	x = exposcall("Read", -1, b);
 	breakpoint;
 	//a = 12;
