@@ -5,9 +5,9 @@ alias counter R3;
 if(functionNum == 8) then
 	while([TERMINAL_STATUS_TABLE + 0] == 1) do
 		[PROCESS_TABLE + currentPID*16 + 4] = WAIT_TERMINAL;
-		multipush (R1, R2, R3);
+		backup;		//instead of multipush
 		call MOD_5;
-		multipop (R1, R2, R3);
+		restore;	//instead of multipop
 	endwhile;
 
 	[TERMINAL_STATUS_TABLE + 0] = 1;
@@ -21,7 +21,6 @@ if(functionNum == 9) then
 		R0 = -1;
 		return;
 	endif;
-
 	[TERMINAL_STATUS_TABLE + 0] = 0;
 	counter = 0;
 

@@ -1,5 +1,6 @@
 alias currPID R0;
 alias curr_process_table R1;
+alias loop_counter R5;
 
 currPID = [SYSTEM_STATUS_TABLE + 1];
 multipush (BP);
@@ -14,19 +15,23 @@ alias new_process_table R4;
 
 counter = currPID + 1;
 newPID = 0;
-while(counter != currPID) do
-	if(counter==16) then
-		counter = 1;
-	endif;
+
+loop_counter = 0;
+while(loop_counter < 17) do
+		
 	new_process_table = PROCESS_TABLE + counter*16;
 	if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY) then
 		newPID = counter;
 		break;
 	endif;
 	counter = counter + 1;
+	if(counter==16) then
+		counter = 1;
+	endif;
+	loop_counter = loop_counter + 1;
 endwhile;
 
-if(newPID == 0 && [curr_process_table + 4]==READY) then
+if(newPID == 0 && [curr_process_table + 4]==READY) then		//this part seems redundant
 	newPID = currPID;
 endif;
 
