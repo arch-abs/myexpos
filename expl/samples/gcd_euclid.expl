@@ -24,11 +24,11 @@ decl
 enddecl
 
 begin	
-	breakpoint;
+	//breakpoint;
 	x = exposcall("Read", -1, a);
-	breakpoint;
+	//breakpoint;
 	x = exposcall("Read", -1, b);
-	breakpoint;
+	//breakpoint;
 	//a = 12;
 	//b = 18;
 	x = gcd(a, b);
