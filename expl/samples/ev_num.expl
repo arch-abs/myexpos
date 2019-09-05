@@ -1,10 +1,11 @@
 int main(){
 decl
-	int i, j, k;
+	int i, j, k, n;
 enddecl
 begin
+	j = exposcall("Read", -1, n);
 	i=1;
-	while(i<=100) do
+	while(i<=n) do
 		k = i%2;
 		if(k == 0) then
 			j = exposcall("Write", -2, i);
