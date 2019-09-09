@@ -32,6 +32,7 @@ if(funcNum == GET_FREE_PAGE) then
 	endwhile;
 	
 	R0 = i;		//returning index of FREE mem page in R0;
+	breakpoint;
 	return;
 endif;
 
@@ -57,5 +58,6 @@ if(funcNum == RELEASE_PAGE) then
 	j = j + 1;
 	endwhile;
 
+	breakpoint;
 	return;
 endif;
