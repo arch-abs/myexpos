@@ -1,0 +1,61 @@
+alias funcNum R1;
+alias named_local_1 R2;		//passed by CALLER as pageNum in RELEASE_PAGE, blockNum in RELEASE_BLOCK & GET_CODE_PAGE
+alias PID R3;		//only used in RELEASE_BLOCK
+alias named_local_2 R4;
+
+
+
+
+
+//-------------------------------GET_FREE_PAGE-------------------------------------
+if(funcNum == GET_FREE_PAGE) then
+	alias i R4;
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;		//increment  WAIT_MEM_COUNT in SYS_STAT_TAB
+
+	while([SYSTEM_STATUS_TABLE + 2] == 0) do		//busy wait for mem to be free
+		[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_MEM;
+		multipush(R0, R1, R2, R3, R4);
+		call MOD_5;
+		multipop(R0, R1, R2, R3, R4);
+	endwhile;
+
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;		//decrement WAIT_MEM_COUNT in SYS_STAT_TAB
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;		//decrement MEM_FREE_COUNT in SYS_STAT_TAB
+	
+	i=76;		//searching for free pages in the MEM_FREE_LIST in pages available for user
+	while(i <= 127) do
+		if([MEMORY_FREE_LIST + i] == 0) then
+			[MEMORY_FREE_LIST + i] = 1;	//NOTE>>>Loop will surely terminate immaturely since MEM_FREE_COUNT NOT 0
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+	
+	R0 = i;		//returning index of FREE mem page in R0;
+	return;
+endif;
+
+
+
+
+
+//----------------------------RELEASE_PAGE------------------------------------------
+if(funcNum == RELEASE_PAGE) then
+	alias pageNum R2;
+	alias j R4;
+
+	[MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;		//decrementing corresponding entry in MEM_FREE_LIST
+	if([MEMORY_FREE_LIST + pageNum] == 0) then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;		//incrementing MEM_FREE_COUNT if entry of MEM_FREE_LIST becomes 0 after decrementing earlier
+	endif;
+
+	j = 0;
+	while(j<16) do			//setting all the process in WAIT_MEM state to READY state
+		if([PROCESS_TABLE + j*16 + 4] == WAIT_MEM) then
+			[PROCESS_TABLE + j*16 + 4] = READY;
+		endif;
+	j = j + 1;
+	endwhile;
+
+	return;
+endif;

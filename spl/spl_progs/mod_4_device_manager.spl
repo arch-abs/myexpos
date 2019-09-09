@@ -28,9 +28,9 @@ if(functionNum == 4) then
 	call MOD_0;		//call RESOURCE_MANAGER module
 	multipop (R0, R1, R2, R3);
 	
-	breakpoint;	
+	//breakpoint;	
 	read;
-	breakpoint;
+	//breakpoint;
 
 	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = WAIT_TERMINAL;
 

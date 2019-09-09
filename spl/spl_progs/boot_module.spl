@@ -1,8 +1,23 @@
+alias i R1;
+
+
+
 //[SYSTEM_STATUS_TABLE + 1] = 1;
 
 //loading idle code from disk to mem
 //loadi(69, 11);
 //loadi(70, 12);
+
+
+//--------------------DISK & MEM DS LOADING--------------------
+
+//loading INODE_USER_TABLE
+loadi(59, 3);		//NOTE>>>!!!IMP!!!>>>other data structures like process table etc need not be loaded sincethey are not in disk and are setup from scratch every time macihne is booted up.
+loadi(60, 4);
+
+//-----------------DONE DISK & MEM DS LOADING------------------
+
+
 
 //loading int7 from disk to mem
 loadi(16, 29);
@@ -36,6 +51,14 @@ loadi(9, 22);
 loadi(14, 27);
 loadi(15, 28);
 
+//loading int_9_exec_syscall_handler
+loadi(20, 33);
+loadi(21, 34);
+
+
+
+
+
 //---------------------------MODULES LOADING----------------------------
 
 //boot module loaded in os_startup
@@ -48,11 +71,76 @@ loadi(51, 64);
 loadi(40, 53);
 loadi(41, 54);
 
+//load mod_1_PROCESS_MANAGER
+loadi(42, 55);
+loadi(43, 56);
+
+//load mod_2_MEMORY_MANAGER
+loadi(44, 57);
+loadi(45, 58);
+
 //load mod_4 DEVICE_MANAGER
 loadi(48, 61);
 loadi(49, 62);	
 
 //----------------------DONE MODULE LOADING-----------------------------
+
+
+
+
+
+
+
+//-----------------------initialize MEM_FREE_LIST-----------------------
+
+i = 0;				//setting all non user program pages to 1
+while(i <= 75) do
+	[MEMORY_FREE_LIST + i] = 1;
+i = i + 1;
+endwhile;
+
+
+i = 76;				//setting 76-82 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init etc.
+while(i <= 82) do
+	[MEMORY_FREE_LIST + i] = 1;
+i = i + 1;
+endwhile;
+
+
+i = 83;				//setting rest of user prog pages as 0 ie free
+while(i <= 127) do
+	[MEMORY_FREE_LIST + i] = 0;
+i = i + 1;
+endwhile;
+
+				//!!!!!>>>>>ALERT<<<<!!!!! this part might need to be removed
+i = 128;			//setting exetended mem pages (used in NEXSM) as 1;
+while(i <= 143) do
+	[MEMORY_FREE_LIST + i] = 1;
+i = i + 1;
+endwhile;
+
+//--------------------DONE initialize MEM_FREE_LIST---------------------
+
+
+
+
+
+
+
+
+//--------------INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT------------
+
+[SYSTEM_STATUS_TABLE + 3] = 0;		//initialize WAIT_MEM_COUNT
+[SYSTEM_STATUS_TABLE + 2] = (127 - 83 + 1);		//initialize MEM_FREE_COUNT to this since out of USER_PROGRAM pages 76-127 ..76-82 are used up for stack, heap, user area page etc of idle and intinit etc so effectively 83-127 available
+
+//------------DONE INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT----------
+
+
+
+
+
+
 
 
 
@@ -74,6 +162,7 @@ loadi(49, 62);
 [PROCESS_TABLE + 224 + 4] = TERMINATED;
 [PROCESS_TABLE + 240 + 4] = TERMINATED;
 //----------------------DONE SETTING UP AS TERMINATED-------------------------
+
 
 
 

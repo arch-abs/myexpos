@@ -1,0 +1,74 @@
+alias functionNum R1;
+alias PID R2;
+alias named_local_1 R3;
+
+
+//--------------------FREE_USER_AREA_PAGE---------------------
+if(functionNum == FREE_USER_AREA_PAGE) then
+	alias userAreaPageNum R3;
+	userAreaPageNum = [PROCESS_TABLE + PID*16 + 11];
+	
+	multipush(R0, R1, R2, R3);
+	R1 = RELEASE_PAGE;
+	R2 = userAreaPageNum;
+	call MOD_2;
+	multipop(R0, R1, R2, R3);
+
+	return;
+endif;
+
+
+
+
+
+
+//----------------------EXIT_PROCESS-----------------------
+if(functionNum == EXIT_PROCESS) then
+	multipush(R0, R1, R2, R3);		//calling FREE_PAGE_TABLE
+	R1 = FREE_PAGE_TABLE;
+	R2 = PID;		//REDUNDANT...as R2 already contains PID from invoking function
+	call MOD_1;
+	multipop(R0, R1, R2, R3);
+
+	multipush(R0, R1, R2, R3);		//calling FREE_USER_AREA_PAGE
+	R1 = FREE_USER_AREA_PAGE;
+	R2 = PID;		//REDUNDANT...as R2 already contains PID from invoking function
+	call MOD_1;
+	multipop(R0, R1, R2, R3);
+	
+	[PROCESS_TABLE + PID*16 + 4] = TERMINATED;
+
+	return;
+endif;
+
+
+
+
+
+
+//----------------------FREE_PAGE_TABLE--------------------------
+if(functionNum == FREE_PAGE_TABLE) then
+	alias i R3;
+	PTBR = PAGE_TABLE_BASE + 20*PID;		//!!!!!!!>>>>ALERT<<<<!!!!! not sure if this always works
+	
+	[PTBR + 0] = -1;		//just invalidating entries of LIB page and not freeing them as always need to be in MEM even if no process is using it currently
+	[PTBR + 1] = "0000";
+	[PTBR + 2] = -1;
+	[PTBR + 3] = "0000";
+
+	i = 2;		//invalidating PAGE_TABLE entries and freeing corresponding pages
+	while(i<10) do
+		if([PTBR + (i*2)] != -1) then
+			multipush(R0, R1, R2, R3);
+			R1 = RELEASE_PAGE;
+			R2 = [PTBR + i*2];
+			call MOD_2;
+			multipop(R0, R1, R2, R3);
+		endif;
+		[PTBR + i*2] = -1;
+		[PTBR + i*2 + 1] = "0000";
+	i = i + 1;
+	endwhile;
+
+	return;
+endif;

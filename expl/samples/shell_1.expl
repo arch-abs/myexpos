@@ -1,0 +1,18 @@
+int main(){
+decl
+	int x;
+	str fileName;
+enddecl
+	
+begin
+	x = exposcall("Read", -1, fileName);
+	x = exposcall("Exec", fileName);
+	
+	if(x == -1) then
+		fileName = "File NF DSK";
+		x = exposcall("Write", -2, fileName);
+	endif;
+return 0;
+
+end
+}
