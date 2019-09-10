@@ -1,3 +1,5 @@
+breakpoint;
+
 alias currPID R0;
 alias curr_process_table R1;
 alias counter R2;
@@ -22,4 +24,5 @@ endwhile;
 restore;
 SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13];
 
+breakpoint;
 ireturn;
