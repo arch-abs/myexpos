@@ -1,32 +1,33 @@
 alias functionNum R1;
 alias currentPID R2;
-alias word_or_wordaddr R3;
+alias word_or_wordaddr_or_pageNum R3;
+alias blockNum R4;
 
 if(functionNum == 3) then
 	alias word R3;
-	multipush (R0, R1, R2, R3);
+	multipush (R0, R1, R2, R3, R4);
 	R1 = 8;
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_0;
-	multipop (R0, R1, R2, R3);
+	multipop (R0, R1, R2, R3, R4);
 
 	print word;
 
-	multipush (R0, R1, R2, R3);
+	multipush (R0, R1, R2, R3, R4);
 	R1 = 9;
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_0;		//returns a value -1 or 0 for terminal release
-	multipop (R0, R1, R2, R3);
+	multipop (R0, R1, R2, R3, R4);
 	return;
 endif;
 
 if(functionNum == 4) then
 	alias wordStoreAddress R3;
-	multipush (R0, R1, R2, R3);
+	multipush (R0, R1, R2, R3, R4);
 	R1 = 8;
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_0;		//call RESOURCE_MANAGER module
-	multipop (R0, R1, R2, R3);
+	multipop (R0, R1, R2, R3, R4);
 	
 	//breakpoint;	
 	read;
@@ -34,13 +35,36 @@ if(functionNum == 4) then
 
 	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = WAIT_TERMINAL;
 
-	multipush (R0, R1, R2, R3);
+	multipush (R0, R1, R2, R3, R4);
 	call MOD_5;
-	multipop (R0, R1, R2, R3);
+	multipop (R0, R1, R2, R3, R4);
 
 	[[PTBR + 2*(wordStoreAddress/512)]*512 + (wordStoreAddress % 512)] = [PROCESS_TABLE + currentPID*16 + 8];		//converting logical store addr to physical and storing data present in inputbuffer there
 
 	return;
-else
+
+endif;
+
+
+if(functionNum == DISK_LOAD) then
+	alias pageNum R3;
+
+	multipush(R0, R1, R2, R3, R4);		//Accquiring DISK
+	R1 = ACQUIRE_DISK;
+	R2 = [SYSTEM_STATUS_TABLE + 1];		//REDUNDANT!!! as R2 itself is currPID
+	call MOD_0;
+	multipop(R0, R1, R2, R3, R4);
+
+	[DISK_STATUS_TABLE + 1] = 0;		//0 for DISK_LOAD (and NOT WRITE)
+	[DISK_STATUS_TABLE + 2] = pageNum;
+	[DISK_STATUS_TABLE + 3] = blockNum;
+
+	load(pageNum, blockNum);
+	
+	[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_DISK;
+	multipush(R0, R1, R2, R3, R4);
+	call MOD_5;		//invoking scheduler after setting state to WAIT_DISK
+	multipop(R0, R1, R2, R3, R4);
+
 	return;
 endif;

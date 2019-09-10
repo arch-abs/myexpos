@@ -36,4 +36,19 @@ if(functionNum == 9) then
 	return;
 endif;
 
+if(functionNum == ACQUIRE_DISK) then
+	while([DISK_STATUS_TABLE + 0] == 1) do 
+		[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_DISK;
+		multipush(R0, R1, R2, R3);
+		call MOD_5;
+		multipop(R0, R1, R2, R3);
+	endwhile;
+						//LOCK the DISK when available
+	[DISK_STATUS_TABLE + 0] = 1;		//setting STATUS as 1 in DISK_STAT_TAB
+	[DISK_STATUS_TABLE + 4] = currentPID;	//setting PID as currPID in DISK_STAT_TAB
+
+	return;
+endif;
+
 return;
+

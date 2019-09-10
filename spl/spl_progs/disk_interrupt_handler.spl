@@ -1,0 +1,25 @@
+alias currPID R0;
+alias curr_process_table R1;
+alias counter R2;
+
+[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13] = SP;
+SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 11]*512 -1;
+backup;
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + 16*currPID;
+
+[DISK_STATUS_TABLE + 0] = 0;		//setting STATUS in DISK_STAT_TAB as 0 ie FREE
+
+counter = 0;		//-----setting all process in WAIT_DISK to READY-----
+while(counter < 16) do
+	if([PROCESS_TABLE + counter*16 + 4] == WAIT_DISK) then
+		[PROCESS_TABLE + counter*16 + 4] = READY;
+	endif;
+counter = counter + 1;
+endwhile;
+
+restore;
+SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13];
+
+ireturn;
