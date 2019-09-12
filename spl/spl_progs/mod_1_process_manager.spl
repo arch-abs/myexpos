@@ -1,6 +1,8 @@
 alias functionNum R1;
 alias PID R2;
 alias named_local_1 R3;
+alias named_local_2 R4;
+
 
 
 //--------------------FREE_USER_AREA_PAGE---------------------
@@ -8,11 +10,11 @@ if(functionNum == FREE_USER_AREA_PAGE) then
 	alias userAreaPageNum R3;
 	userAreaPageNum = [PROCESS_TABLE + PID*16 + 11];
 	
-	multipush(R0, R1, R2, R3);
+	multipush(R0, R1, R2, R3, R4);
 	R1 = RELEASE_PAGE;
 	R2 = userAreaPageNum;
 	call MOD_2;
-	multipop(R0, R1, R2, R3);
+	multipop(R0, R1, R2, R3, R4);
 
 	return;
 endif;
@@ -24,17 +26,17 @@ endif;
 
 //----------------------EXIT_PROCESS-----------------------
 if(functionNum == EXIT_PROCESS) then
-	multipush(R0, R1, R2, R3);		//calling FREE_PAGE_TABLE
+	multipush(R0, R1, R2, R3, R4);		//calling FREE_PAGE_TABLE
 	R1 = FREE_PAGE_TABLE;
 	R2 = PID;		//REDUNDANT...as R2 already contains PID from invoking function
 	call MOD_1;
-	multipop(R0, R1, R2, R3);
+	multipop(R0, R1, R2, R3, R4);
 
-	multipush(R0, R1, R2, R3);		//calling FREE_USER_AREA_PAGE
+	multipush(R0, R1, R2, R3, R4);		//calling FREE_USER_AREA_PAGE
 	R1 = FREE_USER_AREA_PAGE;
 	R2 = PID;		//REDUNDANT...as R2 already contains PID from invoking function
 	call MOD_1;
-	multipop(R0, R1, R2, R3);
+	multipop(R0, R1, R2, R3, R4);
 	
 	[PROCESS_TABLE + PID*16 + 4] = TERMINATED;
 
@@ -49,6 +51,8 @@ endif;
 //----------------------FREE_PAGE_TABLE--------------------------
 if(functionNum == FREE_PAGE_TABLE) then
 	alias i R3;
+	alias tmp R4;
+
 	PTBR = PAGE_TABLE_BASE + 20*PID;		//!!!!!!!>>>>ALERT<<<<!!!!! not sure if this always works
 	
 	[PTBR + 0] = -1;		//just invalidating entries of LIB page and not freeing them as always need to be in MEM even if no process is using it currently
@@ -67,6 +71,23 @@ if(functionNum == FREE_PAGE_TABLE) then
 		endif;
 		[PTBR + i*2] = -1;
 		[PTBR + i*2 + 1] = "0000";
+	i = i + 1;
+	endwhile;
+
+	//invalidating DISK_MAP_TAB and RELEASE_BLOCKS for STACK and HEAP
+	i=0;
+	while(i<10) do
+		if(([DISK_MAP_TABLE + 10*PID + i] != -1) && (i==2 || i==3 || i==8 || i==9)) then
+			backup;		//instead of multipush
+			R1 = RELEASE_BLOCK;
+			tmp = i;
+			R3 = PID;		//>>>!!!CAUTION!!!<<< Notice the use of TMP & order of assigning args
+			R2 = [DISK_MAP_TABLE + 10*PID + tmp];		//blockNum
+			call MOD_2;		//calling RELEASE_BLOCK on HEAP and STACK blocks if SWAPPED into DISK
+			restore;	//instead of multipop
+		endif;
+
+		[DISK_MAP_TABLE + 10*PID + i] = -1;		//invalidating all entries in the DISK_MAP_TAB for current process
 	i = i + 1;
 	endwhile;
 

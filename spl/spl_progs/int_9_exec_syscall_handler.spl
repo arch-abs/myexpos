@@ -94,7 +94,47 @@ SP = [curr_process_table + 11]*512 - 1;			//REDUNDANT...initializing SP to STACK
 
 
 
+
+
+//----------------------intialiazing PER_PROCESS_TABLE of the NEW process----------------------------
+i = 496;		//PER_PROCESSS_TAB is present in last 16 words of USER_AREA_PAGE with 16 entries of two words each
+while(i < 512) do
+	[userAreaPageNum*512 + i] = -1;		//setting -1 RESOURCE_IDENTIFIER fied of PER_PROCESS_TABLE
+i = i + 2;
+endwhile;
+//--------------------DONE intialiazing PER_PROCESS_TABLE of the NEW process-------------------------
+
+
+
+
+
+
 //-------------------allocate new pages and set up PAGE_TABLE of the NEW PROCESS--------------------
+// ######------ invalidating all PAGE_TAB entries initially
+[PTBR + 0] = -1;
+[PTBR + 1] = "0000";
+[PTBR + 2] = -1;
+[PTBR + 3] = "0000";
+
+[PTBR + 4] = -1;
+[PTBR + 5] = "0000";
+[PTBR + 6] = -1;
+[PTBR + 7] = "0000";
+
+[PTBR + 8] = -1;
+[PTBR + 9] = "0000";
+[PTBR + 10] = -1;
+[PTBR + 11] = "0000";
+[PTBR + 12] = "-1";
+[PTBR + 13] = "0000";
+[PTBR + 14] = -1;
+[PTBR + 15] = "0000";
+
+[PTBR + 16] = -1;
+[PTBR + 17] = "0000";
+[PTBR + 18] = -1;
+[PTBR + 19] = "0000";
+
 
 // ######------ setting up LIB entry PAGE_TABLE------######
 PTBR = PAGE_TABLE_BASE + currPID*20;		//REDUNDANT...actually PTBR was this value before itself
@@ -134,48 +174,41 @@ restore;
 
 
 // ######-----setting up HEAP_1 in PAGE_TABLE-------######
-//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-backup;
-R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+////multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//backup;
+//R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
 
-call MOD_2;		//calling MEMORY_MANAGER_MODULE
+//call MOD_2;		//calling MEMORY_MANAGER_MODULE
 
-[PTBR + 4] = R0;		//mapping virt addr to free physical addr returned
-[PTBR + 5] = "0110";
+//[PTBR + 4] = R0;		//mapping virt addr to free physical addr returned
+//[PTBR + 5] = "0110";
 
-//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-restore;
+////multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//restore;
 
-// ######-----setting up HEAP_2 in PAGE_TABLE-------######
-//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-backup;
-R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+//// ######-----setting up HEAP_2 in PAGE_TABLE-------######
+////multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//backup;
+//R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
 
-call MOD_2;		//calling MEMORY_MANAGER_MODULE
+//call MOD_2;		//calling MEMORY_MANAGER_MODULE
 
-[PTBR + 6] = R0;		//mapping virt addr to free physical addr returned
-[PTBR + 7] = "0110";
+//[PTBR + 6] = R0;		//mapping virt addr to free physical addr returned
+//[PTBR + 7] = "0110";
 
-//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-restore;
+////multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//restore;
 
 
-// ######-----loading and setting up PAGE_TABLE for code blocks------######
+//// ######-----loading and setting up PAGE_TABLE for code blocks------######
 
-[PTBR + 8] = -1;
-[PTBR + 9] = "0000";
-[PTBR + 10] = -1;
-[PTBR + 11] = "0000";
-[PTBR + 12] = "-1";
-[PTBR + 13] = "0000";
-[PTBR + 14] = -1;
-[PTBR + 15] = "0000";
 
 if([INODE_TABLE + index*16 + 8] != -1) then
 	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
 	backup;
-	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
-
+	R1 = GET_CODE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+	R2 = [INODE_TABLE + index*16 + 8];
+	
 	call MOD_2;		//calling MEMORY_MANAGER_MODULE
 	
 	[PTBR + 8] = R0;		//mapping virt addr to free physical addr returned
@@ -183,97 +216,85 @@ if([INODE_TABLE + index*16 + 8] != -1) then
 
 	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
 	restore;
-	
-	//breakpoint;
-	//loadi([PTBR + 8], [INODE_TABLE + index*16 + 8]);
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
-	R1 = DISK_LOAD;
-	R3 = [PTBR + 8];
-	R4 = [INODE_TABLE + index*16 + 8];
-	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
 endif;
 
-if([INODE_TABLE + index*16 + 9] != -1) then
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+//if([INODE_TABLE + index*16 + 9] != -1) then
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+//
+//	call MOD_2;		//calling MEMORY_MANAGER_MODULE
+//	
+//	[PTBR + 10] = R0;		//mapping virt addr to free physical addr returned
+//	[PTBR + 11] = "0100";
+//
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//
+//	
+//	//loadi([PTBR + 10], [INODE_TABLE + index*16 + 9]);
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
+//	R1 = DISK_LOAD;
+//	R3 = [PTBR + 10];
+//	R4 = [INODE_TABLE + index*16 + 9];
+//	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//endif;
 
-	call MOD_2;		//calling MEMORY_MANAGER_MODULE
-	
-	[PTBR + 10] = R0;		//mapping virt addr to free physical addr returned
-	[PTBR + 11] = "0100";
+//if([INODE_TABLE + index*16 + 10] != -1) then
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+//
+//	call MOD_2;		//calling MEMORY_MANAGER_MODULE
+//	
+//	[PTBR + 12] = R0;		//mapping virt addr to free physical addr returned
+//	[PTBR + 13] = "0100";
+//
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//
+//	
+//	//loadi([PTBR + 12], [INODE_TABLE + index*16 + 10]);
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
+//	R1 = DISK_LOAD;
+//	R3 = [PTBR + 12];
+//	R4 = [INODE_TABLE + index*16 + 10];
+//	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//endif;
 
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-
-	
-	//loadi([PTBR + 10], [INODE_TABLE + index*16 + 9]);
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
-	R1 = DISK_LOAD;
-	R3 = [PTBR + 10];
-	R4 = [INODE_TABLE + index*16 + 9];
-	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-endif;
-
-if([INODE_TABLE + index*16 + 10] != -1) then
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
-
-	call MOD_2;		//calling MEMORY_MANAGER_MODULE
-	
-	[PTBR + 12] = R0;		//mapping virt addr to free physical addr returned
-	[PTBR + 13] = "0100";
-
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-
-	
-	//loadi([PTBR + 12], [INODE_TABLE + index*16 + 10]);
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
-	R1 = DISK_LOAD;
-	R3 = [PTBR + 12];
-	R4 = [INODE_TABLE + index*16 + 10];
-	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-endif;
-
-if([INODE_TABLE + index*16 + 11] != -1) then
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
-
-	call MOD_2;		//calling MEMORY_MANAGER_MODULE
-	
-	[PTBR + 14] = R0;		//mapping virt addr to free physical addr returned
-	[PTBR + 15] = "0100";
-
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-
-
-	//loadi([PTBR + 14], [INODE_TABLE + index*16 + 11]);
-	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	backup;
-	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
-	R1 = DISK_LOAD;
-	R3 = [PTBR + 14];
-	R4 = [INODE_TABLE + index*16 + 11];
-	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
-	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
-	restore;
-endif;	
+//if([INODE_TABLE + index*16 + 11] != -1) then
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R1 = GET_FREE_PAGE;		//passing FUNC_NUM of get_free_page of MOD_2_MEMORY_MANAGER_MODULE
+//
+//	call MOD_2;		//calling MEMORY_MANAGER_MODULE
+//	
+//	[PTBR + 14] = R0;		//mapping virt addr to free physical addr returned
+//	[PTBR + 15] = "0100";
+//
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//
+//
+//	//loadi([PTBR + 14], [INODE_TABLE + index*16 + 11]);
+//	//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	backup;
+//	R2 = currPID;		//!!!>>>>CAUTION<<<<<!!! notive the order since currPID itself is alias of R1
+//	R1 = DISK_LOAD;
+//	R3 = [PTBR + 14];
+//	R4 = [INODE_TABLE + index*16 + 11];
+//	call MOD_4;				//loading by calling LOAD_DISK from DEVICE_MANAGER_MODULE
+//	//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+//	restore;
+//endif;	
 
 //----------------------------DONE alloc new pages assgn PAGE TABLE setup----------------------------
 
@@ -282,13 +303,21 @@ endif;
 
 
 
-//----------------------intialiazing PER_PROCESS_TABLE of the NEW process----------------------------
-i = 496;		//PER_PROCESSS_TAB is present in last 16 words of USER_AREA_PAGE with 16 entries of two words each
-while(i < 512) do
-	[userAreaPageNum*512 + i] = -1;		//setting -1 RESOURCE_IDENTIFIER fied of PER_PROCESS_TABLE
-i = i + 2;
+
+//----------------------intialiazing DISK_MAP_TABLE of the NEW process-------------------------------
+i=0;
+while(i < 10) do
+	[DISK_MAP_TABLE + currPID*10 + i] = -1;
+i = i + 1;
 endwhile;
-//----------------------intialiazing PER_PROCESS_TABLE of the NEW process----------------------------
+
+[DISK_MAP_TABLE + currPID*10 + 4] = [INODE_TABLE + index*16 + 8]; 
+[DISK_MAP_TABLE + currPID*10 + 5] = [INODE_TABLE + index*16 + 9] ;
+[DISK_MAP_TABLE + currPID*10 + 6] = [INODE_TABLE + index*16 + 10] ;
+[DISK_MAP_TABLE + currPID*10 + 7] = [INODE_TABLE + index*16 + 11] ;
+
+
+//---------------------DONE intialiazing DISK_MAP_TABLE of the NEW process---------------------------
 
 
 

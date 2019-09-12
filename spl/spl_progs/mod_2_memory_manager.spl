@@ -2,6 +2,7 @@ alias funcNum R1;
 alias named_local_1 R2;		//passed by CALLER as pageNum in RELEASE_PAGE, blockNum in RELEASE_BLOCK & GET_CODE_PAGE
 alias PID R3;		//only used in RELEASE_BLOCK
 alias named_local_2 R4;
+alias named_local_3 R5;
 
 
 
@@ -10,13 +11,16 @@ alias named_local_2 R4;
 //-------------------------------GET_FREE_PAGE-------------------------------------
 if(funcNum == GET_FREE_PAGE) then
 	alias i R4;
+
+	multipush (R4);	
+
 	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;		//increment  WAIT_MEM_COUNT in SYS_STAT_TAB
 
 	while([SYSTEM_STATUS_TABLE + 2] == 0) do		//busy wait for mem to be free
 		[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_MEM;
-		multipush(R0, R1, R2, R3, R4);
+		multipush(R0, R1, R2, R3, R4, R5);
 		call MOD_5;
-		multipop(R0, R1, R2, R3, R4);
+		multipop(R0, R1, R2, R3, R4, R5);
 	endwhile;
 
 	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;		//decrement WAIT_MEM_COUNT in SYS_STAT_TAB
@@ -32,6 +36,8 @@ if(funcNum == GET_FREE_PAGE) then
 	endwhile;
 	
 	R0 = i;		//returning index of FREE mem page in R0;
+	
+	multipop(R4);
 	return;
 endif;
 
@@ -57,5 +63,60 @@ if(funcNum == RELEASE_PAGE) then
 	j = j + 1;
 	endwhile;
 
+	return;
+endif;
+
+
+
+
+
+
+//-------------------------------GET_CODE_PAGE--------------------------------------
+if(funcNum == GET_CODE_PAGE) then
+	alias blockNum R2;
+	alias pid_ind R4;
+	alias page R5;
+
+	pid_ind = 0;
+	while(pid_ind < MAX_PROC_NUM) do
+		page = 4;
+		while(page < (4 + MAX_FILE_BLOCKS)) do
+			if(([DISK_MAP_TABLE + pid_ind*10 + page] == blockNum) && ([PAGE_TABLE_BASE + 20*pid_ind + 2*page] != -1)) then
+				R0 = [PAGE_TABLE_BASE + 20*pid_ind + 2*page];
+				[MEMORY_FREE_LIST + R0] = [MEMORY_FREE_LIST + R0] + 1;
+				return;
+			endif;
+		page = page + 1;
+		endwhile;
+	pid_ind = pid_ind + 1;
+	endwhile;
+
+
+	//backup;		//instead of multipush
+	R1 = GET_FREE_PAGE;
+	call MOD_2;		//calling MEMORY_MANAGER for GET_FREE_PAGE
+				//NOT RESTORING YET AS RETURNED R0 WILL BE LOST
+	R4 = blockNum;		//>>>>!!!CAUTION!!!<<< Notice the order since R2 id blockNum and it must not be changed before assiging to R4
+	R1 = DISK_LOAD;
+	R2 = [SYSTEM_STATUS_TABLE + 1];		//>>>>!!!!ALERT!!!<<<< ERROR can be arrising here (clarify which PID to pass)
+	R3 = R0;
+
+	multipush(R0);
+	call MOD_4;		//calling DEVICE_MANAGER for DISK_LOAD
+	multipop(R0);		//since only R0 relevant after return
+
+	//restore;	//instead of multipop
+	
+	// now R0 contains value returned by GET_FREE_PAGE
+	return;
+endif;
+
+
+
+
+//-------------------------------RELEASE_BLOCK--------------------------------------
+if(funcNum == RELEASE_BLOCK) then
+	alias blockNum R2;
+	[DISK_FREE_LIST + blockNum] = [DISK_FREE_LIST + blockNum] - 1;		//decrementing count of corresponding block in DISK_FREE_LIST
 	return;
 endif;

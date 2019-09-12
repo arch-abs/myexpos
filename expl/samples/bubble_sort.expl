@@ -1,0 +1,51 @@
+decl
+	int arr[1000];
+enddecl
+
+int main(){
+decl	
+	str str1;
+	int i, j, n, x, y, tmp;
+enddecl
+
+begin
+	str1 = "Enter N--->>>";
+	x = exposcall("Write", -2, str1);
+	x = exposcall("Read", -1, n);
+	
+	str1 = "Enter elements--->>>";
+	x = exposcall("Write", -2, str1);
+	i=0;
+	while(i<n) do
+		breakpoint;
+		x = exposcall("Read", -1, y);
+		breakpoint;
+		arr[i] = y;
+
+		i = i + 1;
+	endwhile;
+
+	i=0;
+	while(i<n) do
+		j=1;
+		while(j<n) do
+			if(arr[j]<arr[j-1]) then
+				tmp = arr[j];
+				arr[j] = arr[j-1];
+				arr[j-1] = tmp;
+			endif;
+		j= j + 1;
+		endwhile;	
+	i = i + 1;
+	endwhile;
+
+
+	i=0;
+	while(i<n) do
+		x = exposcall("Write", -2, arr[i]);
+	i = i + 1;
+	endwhile;
+
+	return 0;
+end
+}

@@ -15,6 +15,9 @@ alias i R1;
 loadi(59, 3);		//NOTE>>>!!!IMP!!!>>>other data structures like process table etc need not be loaded sincethey are not in disk and are setup from scratch every time macihne is booted up.
 loadi(60, 4);
 
+//loading DISK_FREE_LIST
+loadi(61, 2);
+
 //-----------------DONE DISK & MEM DS LOADING------------------
 
 
@@ -271,6 +274,15 @@ while(i < 512) do
 i = i + 2;
 endwhile;
 
+
+//intializing DISK_MAP_TABLE for INIT
+i = 0;
+while(i < 10) do
+	[DISK_MAP_TABLE + 10 + i] = -1;
+i = i + 1;
+endwhile;
+[DISK_MAP_TABLE + 10 + 4] = 7;
+[DISK_MAP_TABLE + 10 + 5] = 8;
 
 
 [76*512] = [65*512 + 1];

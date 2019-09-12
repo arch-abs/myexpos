@@ -1,0 +1,11 @@
+1. Do we store USER_AREA_PAGE block in DISK_MAP_TABLE
+
+2. Inuput of GET_CODE_PAGE
+
+3. Input of RELEASE_BLOCK (whether PID passed or not)
+
+4. In RELEASE_BLOCK do we decrement the entry of DISK_FREE_LIST or nake it 0.(also  if DISK_FREE_LIST contains entries 0 & 1 or the number of processes sharing that block)
+
+5. Do we directly use "print" in exception handler or use TERMINAL_WRITE of DEVICE_MANAGER module. (IMP!!! if using TERMONAL_WRITE.. remember to save values of Exception REGS. in stack and pop them back after terminal write ....ie, along with saving R0, R1, R2, R3..etc do for EC, EIP, EPN etc.)
+
+6. IMP!!!!! In exception handler when we call GET_CODE_PAGE shouldnt we also push EPN EMA etc.  since GET_CODE PAGE might schedule another process which MIGHT generate another exception so values of Exception REGISTERS might change...

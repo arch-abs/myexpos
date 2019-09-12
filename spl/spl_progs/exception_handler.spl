@@ -1,0 +1,97 @@
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+alias str R4;
+
+
+[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 9] = -1;	//setting MODE as -1 in SYS_STAT_TABI
+[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13] = SP;
+SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 11]*512 - 1; 
+
+backup;		//backing up the context
+multipush(EIP);		//pushing EIP in KERNEL stack
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + 16*currPID;
+userSP = [curr_process_table + 13];
+
+
+//things to be done is exception is not a page_fault
+if((EC != 0) || (userSP == (PTLR*512-1))) then
+	print "EXCEP_RAISED..!!!";		//>>>!!!CAUTION!!!<<<	print might have to be replaced by TERMINAL_WRITE call
+	if(userSP == (PTLR*512-1)) then
+			print "USER_STACK_FULL";
+		
+	else
+		if(EC == 1) then
+			print "Ill. Instr..";
+		endif;
+
+		if(EC == 2) then
+			print "Ill. Mem_addr.";
+		endif;
+
+		if(EC == 3) then
+			print "Arith. Execp.";
+		endif;
+	endif;
+	print "KILLING PROCESS...";
+
+	backup;		//instead of multipush
+	R2 = currPID;		//>>>!!!CAUTION!!1<<< Notice the order
+	R1 = EXIT_PROCESS;
+	call MOD_1;		//calling EXIT_PROCESS of PROCESS_MANGER_MODULE
+	restore;
+
+	call MOD_5;		//calling SCHEDULER
+endif;
+
+
+//things to be done if exception is a page_fault
+if(EC == 0) then
+	//when a code page causes page fault
+	if((EPN == 4) || (EPN == 5) || (EPN == 6) || (EPN == 7)) then
+		backup;
+		multipush(EIP, EPN, EC, EMA);		//>>>!!!CAUTION!!!<<< may cause problems....doing because GET_CODE_PAGE may schedule othe ysr proc which may change excep regs due to execptio
+		//passing BLOCK_NUM in R2 for GET_CODE_PAGE
+		R2 = [DISK_MAP_TABLE + 10*currPID + EPN];	//>>>!!!CAUTION!!!<<< Notice the order
+		R1 = GET_CODE_PAGE;
+		call MOD_2;
+		
+		multipop(EIP, EPN, EC, EMA);		//>>>!!!NOTICE!!!<<< EXCEP_REGS are restored before using EPN
+		[PTBR + 2*EPN + 0] = R0;
+		[PTBR + 2*EPN + 1] = "1100";
+		restore;		//instead of multipop
+	endif;
+
+	//when a heap page causes a page fault
+	if((EPN == 2) || (EPN==3)) then
+		backup;				//allocating HEAP_1
+		multipush(EIP, EPN, EC, EMA);		//>>>!!!CAUTION!!!<<< may cause problems.. 
+		R1 = GET_FREE_PAGE;
+		call MOD_2;				//if any of the HEAP pages give page fault then setting up both heap pages after calling GET_FREE_PAGE	
+		multipop(EIP, EPN, EC, EMA);		//>>>!!!NOTICE!!!<<< EXCEP_REGS are restored before using EPN
+		[PTBR + 4] = R0;
+		[PTBR + 5] = "1110";
+		restore;
+
+		backup;				//allocating HEAP_2
+		multipush(EIP, EPN, EC, EMA);		////>>>!!!CAUTION!!!<<< may cause problems.. 
+		R1 = GET_FREE_PAGE;
+		call MOD_2;	
+		multipop(EIP, EPN, EC, EMA);		//>>>!!!NOTICE!!!<<< EXCEP_REGS are restored before using EPN
+		[PTBR + 6] = R0;
+		[PTBR + 7] = "1110";
+		restore;
+	endif;
+endif;
+
+[curr_process_table + 9] = 0;		//restoring STATE to 0 for user mode in PROCESS_TAB
+multipop(EIP);
+restore;
+
+SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13];
+SP = SP + 1;
+[[PTBR + 2*(SP/512)]*512 + SP%512] = EIP;
+
+ireturn;
