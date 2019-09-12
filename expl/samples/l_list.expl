@@ -30,7 +30,7 @@ begin
 	if(n>0) then
 		head = exposcall("Alloc", 8);
 		ret = exposcall("Read", -1, x);
-		breakpoint;
+		//breakpoint;
 		head.data = x;
 		head.next = null;
 	endif;
