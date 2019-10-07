@@ -24,18 +24,18 @@ if((EC != 0) || (userSP == (PTLR*512-1))) then
 		
 	else
 		if(EC == 1) then
-			print "Ill. Instr..";
+			print "Ill Instr";
 		endif;
 
 		if(EC == 2) then
-			print "Ill. Mem_addr.";
+			print "Ill Memaddr";
 		endif;
 
 		if(EC == 3) then
-			print "Arith. Execp.";
+			print "Art Exp";
 		endif;
 	endif;
-	print "KILLING PROCESS...";
+	print "KILLIN PR";
 
 	backup;		//instead of multipush
 	R2 = currPID;		//>>>!!!CAUTION!!1<<< Notice the order

@@ -67,7 +67,7 @@ _L3:
 MOV R16, 1
 EQ R16, EC
 JZ R16, _L5
-MOV R16, "Ill. Instr.."
+MOV R16, "Ill Instr"
 PORT P1, R16
 OUT
 JMP _L6
@@ -76,7 +76,7 @@ _L6:
 MOV R16, 2
 EQ R16, EC
 JZ R16, _L7
-MOV R16, "Ill. Mem_addr."
+MOV R16, "Ill Memaddr"
 PORT P1, R16
 OUT
 JMP _L8
@@ -85,14 +85,14 @@ _L8:
 MOV R16, 3
 EQ R16, EC
 JZ R16, _L9
-MOV R16, "Arith. Execp."
+MOV R16, "Art Exp"
 PORT P1, R16
 OUT
 JMP _L10
 _L9:
 _L10:
 _L4:
-MOV R16, "KILLING PROCESS..."
+MOV R16, "KILLIN PR"
 PORT P1, R16
 OUT
 BACKUP
