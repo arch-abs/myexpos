@@ -115,7 +115,6 @@ while(i <= 75) do
 	[MEMORY_FREE_LIST + i] = 1;
 i = i + 1;
 endwhile;
-http://exposnitc.github.io/os_design-files/process_table.html#per_process_table
 
 i = 76;				//setting 76-82 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init etc.
 while(i <= 82) do
