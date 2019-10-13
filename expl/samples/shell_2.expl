@@ -12,6 +12,7 @@ begin
 
 		if(input == "Shutdown") then
 			ret = exposcall("Shutdown");
+			break;
 		else
 			pid = exposcall("Fork");
 			if(pid == -1) then
@@ -24,6 +25,7 @@ begin
 					ret = exposcall("Exec", input);
 					if(ret != 0) then
 						ret = exposcall("Write", -2, "BAD_CMD");
+						break;
 					endif;
 				endif;
 			endif;
