@@ -1,0 +1,70 @@
+type
+	LinkedList{
+		int data;
+		LinkedList next;
+	}
+endtype
+
+
+
+int main(){
+
+decl
+	LinkedList head, tmp, p;
+	int x, ret, i, n;
+	str string1;
+enddecl
+
+
+
+
+begin
+	n = 100;
+	ret = exposcall("Heapset");
+
+	head = exposcall("Alloc", 8);
+	head.data = 1;
+	head.next = null;
+	
+	p = head;
+	i = 2;
+	while(i <= 100) do
+		tmp = exposcall("Alloc", 8);
+		tmp.data = i;
+		tmp.next = null;
+		p.next = tmp;
+		p = p.next;
+	i = i + 1;
+	endwhile;
+
+	ret = exposcall("Fork");
+	
+	if(ret == -1) then
+		string1 = "FORK_FAIL";
+		x = exposcall("Write", -2, string1);
+	else
+		p = head;
+		if(ret != 0) then
+			p = p.next;
+			while(p != null) do
+				x = p.data;
+				x = exposcall("Write", -2, x);
+			p = p.next;
+			if(p != null) then
+				p = p.next;
+			endif;
+			endwhile;
+		else
+			while(p != null) do
+				x = p.data;
+				x = exposcall("Write", -2, x);
+			p = p.next;
+			if(p != null) then
+				p = p.next;
+			endif;
+			endwhile;
+		endif;
+	endif;
+return 0;
+end
+}
