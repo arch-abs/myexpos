@@ -1,0 +1,116 @@
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+
+alias sysCallNum R5;
+alias targetPID R6;
+alias target_process_table R7;
+
+alias i R8;
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+
+sysCallNum = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+
+
+
+
+//---------------------------STARTING SYSCALL SPECCIFIC IMPLEMENTATION---------------------------
+
+// *****syscallnum 11 for GETPID*****
+if(sysCallNum == 11) then
+	[curr_process_table + 9] = 11;
+
+	[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [curr_process_table + 1];		//return PID from PROCESS_TABLE
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+
+
+
+// *****syscallnum 12 for GETPPID*****
+if(sysCallNum == 12) then
+	[curr_process_table + 9] = 12;
+
+	[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [curr_process_table + 2];		//return PPID from PROCESS_TABLE
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+
+
+
+// *****syscallnum 13 for WAIT*****
+if(sysCallNum == 13) then
+	[curr_process_table + 9] = 13;
+
+	targetPID = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+	target_process_table = PROCESS_TABLE + 16*targetPID;
+
+	if(targetPID < 0  ||  targetPID >= MAX_PROC_NUM || targetPID==currPID || [target_process_table + 4]==TERMINATED) then
+		[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;	//returning to uasr mode with -1 ret value indicating failure in case of invalid PID passed
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+		ireturn;
+	else	//if PID passed is valid then following steps to perform
+		[curr_process_table + 4] = WAIT_PROCESS;
+		[curr_process_table + 5] = targetPID;
+
+		multipush(R0, R1 ,R2, R5, R6, R7, R8);
+		call MOD_5;		//calling scheduler
+		multipop(R0, R1, R2, R5, R6, R7, R8);
+		//from here on after signal or exit of target process completed
+		[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;		//return value upon success
+		
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+		ireturn;
+	endif;
+endif;
+
+
+
+
+// *****syscallnum 14 for SIGNAL*****
+if(sysCallNum == 14) then
+	[curr_process_table + 9] = 14;
+	i = 0;
+	while(i < MAX_PROC_NUM) do
+		if([PROCESS_TABLE + 16*i + 4] == WAIT_PROCESS  &&  [PROCESS_TABLE + 16*i + 5] == currPID) then
+			[PROCESS_TABLE + 16*i + 4]  = READY;
+			//[PROCESS_TABLE + 16*i + 5] = ;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;		//return value upon success
+	
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+
+endif;
+
+
+//------------------------DONE STARTING SYSCALL SPECCIFIC IMPLEMENTATION-------------------------
+
+
+
+[curr_process_table + 9] = 0;
+SP = [curr_process_table + 13];
+ireturn;
+
