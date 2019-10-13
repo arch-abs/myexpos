@@ -93,3 +93,29 @@ if(functionNum == FREE_PAGE_TABLE) then
 
 	return;
 endif;
+
+
+
+
+
+
+
+//-----------------------------------------GET_PCB_ENTRY-----------------------------------------
+if(functionNum == GET_PCB_ENTRY) then
+	alias i R3;
+	i = 0;
+	while(i<16) do
+		if([PROCESS_TABLE + 16*i + 4] == TERMINATED) then
+			[PROCESS_TABLE + 16*i + 4] = ALLOCATED;
+			[PROCESS_TABLE + 16*i + 1] = i; 
+			[PROCESS_TABLE + 16*i + 14] = PAGE_TABLE_BASE + 20*i;
+			[PROCESS_TABLE + 16*i + 15] = 10;
+			R0 = i; 	//return value
+			return;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	R0 = -1;	//return value if no free entry found
+	return;
+endif;

@@ -9,3 +9,28 @@
 5. Do we directly use "print" in exception handler or use TERMINAL_WRITE of DEVICE_MANAGER module. (IMP!!! if using TERMONAL_WRITE.. remember to save values of Exception REGS. in stack and pop them back after terminal write ....ie, along with saving R0, R1, R2, R3..etc do for EC, EIP, EPN etc.)
 
 6. IMP!!!!! In exception handler when we call GET_CODE_PAGE shouldnt we also push EPN EMA etc.  since GET_CODE PAGE might schedule another process which MIGHT generate another exception so values of Exception REGISTERS might change...
+
+
+7. IMP!!!!! while allocating HEAP pages and code pages in exhandler we set reference bit to one. But while assigning HEAP page in fork do we need to set reference bit to 1 or 0 (Himanshu said in ex_handler page was referenced thenn page fault so we set reference bit to 1 there but here it is not the case...we are loading heap pages even when it was not requested for)
+
+8. A process can be in CREATED state from 2 sources... either from FORK or INIT process created on boot. If a process is in CREATED from FORK then BP is stored on top of KERNEL_STACK, but it is not done so when INIT is CREATED on boot up. But while scheduling in a process in created state we restore the BP from top of KErnwL stack to BP. Wouldn't this cause any problem to the INIT bein gscheduled for the first time.
+
+7. In EXIT_SYS CALL we call EXIT_PROCESS also upon exit sys call the PER_PROCESS_RESOUURCE_TABLE must be invalidated, SEMAPHOREs and FILES opemed by itmust be closed etc. ...But this doesn't seem to happen.
+
+
+
+
+
+NOTES...WHICH MIGHT CAUSE PROBLEMS LATER..!!! REFER IN CASE OF FACING ANY PROBLEM...!!!
+
+1. In exec syscall_handler DISK_MAP_TABLE updated only for code pages and not for STACK AND HEAP pages. (Himanshu told we would do that in that in the pager module).
+
+2. In excep handler prints are too large.
+
+3. In fork reference bit in alloacted HEAP, STACK, USER_AREA_PAGE etc, pages.
+
+4. Unusual poppin in FORK while allocating STACK and USER_AREA_PAGE of childi
+
+5. A process can be in CREATED state from 2 sources... either from FORK or INIT process created on boot. If a process is in CREATED from FORK then BP is stored on top of KERNEL_STACK, but it is not done so when INIT is CREATED on boot up. But while scheduling in a process in created state we restore the BP from top of KErnwL stack to BP. Wouldn't this cause any problem to the INIT bein gscheduled for the first time.i
+
+6. In EXIT_SYS CALL we call EXIT_PROCESS also upon exit sys call the PER_PROCESS_RESOUURCE_TABLE must be invalidated, SEMAPHOREs and FILES opemed by itmust be closed etc. ...But this doesn't seem to happen.

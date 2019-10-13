@@ -6,22 +6,31 @@ currPID = [SYSTEM_STATUS_TABLE  + 1];
 curr_process_table = PROCESS_TABLE + currPID*16; 
 [curr_process_table + 9] = 10;
 [curr_process_table + 13] = SP;
-[curr_process_table + 4] = TERMINATED;
-
-
 SP = [curr_process_table + 11]*512 - 1;		//intializing kernel stack since required for module call
 
-counter = 1;
-while(counter < 16) do
-	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
-		break;
-	endif;
-	counter = counter + 1;
-endwhile;
 
-if(counter == 16) then
-	halt;
-else
-	call MOD_5;
-endif;
+
+multipush (R0, R1, R2);
+R1 = EXIT_PROCESS;
+R2 = currPID;
+call MOD_1;
+multipop (R0, R1, R2);
+
+
+//[curr_process_table + 4] = TERMINATED;
+
+
+//counter = 1;
+//while(counter < 16) do
+//	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+//		break;
+//	endif;
+//	counter = counter + 1;
+//endwhile;
+
+//if(counter == 16) then
+//	halt;
+//else
+	call MOD_5;	//>>>>>>>NOTE!!!<<<<<< the UAP has been freed (so KERNEL_STACK also) but since exit process is non blobking, we can still use it to invoke scheduler
+//endif;
 
