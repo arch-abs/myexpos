@@ -2,6 +2,8 @@ alias userSP R0;	//will be common for both PAR nad CHILD
 alias currPID R1;	//currPID is same as PARENT_PID
 alias curr_process_table R2;	//parent_process_table is same as curr_process_table
 
+alias tmp R3;
+
 alias i R6;
 alias ind R7; //ind will bw same as CHILD_PID
 alias child_process_table R8;
@@ -11,16 +13,17 @@ alias child_page_table R9;	//parent_page_table can be accessed using PTBR
 currPID = [SYSTEM_STATUS_TABLE + 1];
 curr_process_table = PROCESS_TABLE + currPID*16;
 
+
 userSP = SP;
 [curr_process_table + 13] = SP;
 SP = [curr_process_table + 11]*512 - 1;
 [curr_process_table + 9] = 8;
 
-multipush (R0, R1, R2, R6, R8, R9);
+multipush (R0, R1, R2, R3, R6, R8, R9);
 R1 = GET_PCB_ENTRY;
 call MOD_1;
 ind = R0;
-multipop (R0, R1, R2, R6, R8, R9);	//notice R7 or IND not restored as it contains return value(index of free PCB entry)
+multipop (R0, R1, R2, R3, R6, R8, R9);	//notice R7 or IND not restored as it contains return value(index of free PCB entry)
 
 
 
@@ -36,29 +39,31 @@ child_process_table = PROCESS_TABLE + ind*16;
 child_page_table = PAGE_TABLE_BASE + ind*20;
 
 //----------------------------CHECKING if heap page is allocated or not-------------------------
-if(([PTBR + 4] == -1) || [PTBR + 6] == -1 || [PTBR + 5] == "0000" || [PTBR + 5]=="1000" || [PTBR + 5]=="0010" || [PTBR + 5] == "0001" || [PTBR + 5]=="1010" || [PTBR + 5]=="1001" || [PTBR + 5] == "0011" || [PTBR + 5]=="1011" || [PTBR + 7] == "0000" || [PTBR + 7]=="1000" || [PTBR + 7]=="0010" || [PTBR + 7] == "0001" || [PTBR + 7]=="1010" || [PTBR + 7]=="1001" || [PTBR + 7] == "0011" || [PTBR + 7]=="1011") then
-
+//>>>>>>> COMMMENTING THIS SINCE FORK WAS EXCEEDING 2 CODE BLOCKS (MIGHT NEED TOM CHANGE LATER)<<<<<<if(([PTBR + 4] == -1) || [PTBR + 6] == -1 || [PTBR + 5] == "0000" || [PTBR + 5]=="1000" || [PTBR + 5]=="0010" || [PTBR + 5] == "0001" || [PTBR + 5]=="1010" || [PTBR + 5]=="1001" || [PTBR + 5] == "0011" || [PTBR + 5]=="1011" || [PTBR + 7] == "0000" || [PTBR + 7]=="1000" || [PTBR + 7]=="0010" || [PTBR + 7] == "0001" || [PTBR + 7]=="1010" || [PTBR + 7]=="1001" || [PTBR + 7] == "0011" || [PTBR + 7]=="1011") then
+//curr_UAP_num = [curr_process_table + 11];
+//curr_UAP_num = [curr_process_table + 11];
+if(([PTBR + 4] == -1) || ([PTBR + 6] == -1))  then
 	//Allocting HEAP PAGE 1
-	//multipush (R0, R1, R2, R6, R7, R8, R9);
+	//multipush (R0, R1, R2, R3, R6, R7, R8, R9);
 	backup;
 	R1 = GET_FREE_PAGE;
 	call MOD_2;
 	[PTBR + 4] = R0;
 	[PTBR + 5] = "0110";		//!!!!>>>CAUTION!!!<<<< might need to change REFERENCE_BIT to 1
 	restore;
-	//multipop (R0, R1, R2, R6 ,R7, R8, R9);
+	//multipop (R0, R1, R2, R3, R6 ,R7, R8, R9);
 
 
 
 	//Allocating HEAP PAGE 2
-	//multipush (R0, R1, R2, R6, R7, R8, R9);
+	//multipush (R0, R1, R2, R3, R6, R7, R8, R9);
 	backup;
 	R1 = GET_FREE_PAGE;
 	call MOD_2;
 	[PTBR + 6] = R0;
 	[PTBR + 7] = "0110";		//!!!!>>>CAUTION!!!<<<< might need to change REFERENCE_BIT to 1
 	restore;
-	//multipop (R0, R1, R2, R6, R7, R8, R9);
+	//multipop (R0, R1, R2, R3, R6, R7, R8, R9);
 endif;
 //-------------------DONE Allocating HEAP pages if not already allocated------------------------
 
@@ -70,28 +75,28 @@ endif;
 //-------------------------Allocating STACK and USER_AREA_PAGE of CHILD--------------------------
 
 // STACK_1 alloaction
-multipush (R0, R1, R2, R6, R7, R8, R9);
+multipush (R0, R1, R2, R3, R6, R7, R8, R9);
 R1 = GET_FREE_PAGE;
 call MOD_2;
-multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+multipop (R1, R2, R3, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
 [child_page_table + 16] = R0;
 [child_page_table + 17] = "0110";
 multipop (R0);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
 
 // STACK_2 alloaction
-multipush (R0, R1, R2, R6, R7, R8, R9);
+multipush (R0, R1, R2, R3, R6, R7, R8, R9);
 R1 = GET_FREE_PAGE;
 call MOD_2;
-multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+multipop (R1, R2, R3, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
 [child_page_table + 18] = R0;
 [child_page_table + 19] = "0110";
 multipop (R0);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
 
 //USER_AREA_PAGE Allocation
-multipush (R0, R1, R2, R6, R7, R8, R9);
+multipush (R0, R1, R2, R3, R6, R7, R8, R9);
 R1 = GET_FREE_PAGE;
 call MOD_2;
-multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+multipop (R1, R2, R3, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
 [child_process_table + 11] = R0;	//setting USER_AREA_PAGE_NO of CHILD_PROCESS
 multipop (R0);
 
@@ -136,8 +141,14 @@ multipop (R0);
 
 i = 496;
 while(i < 511) do
-	[[child_process_table + 11]*512 + i] = [[curr_process_table + 11]*512 + i];
-	[[child_process_table + 11]*512 + i + 1] = [[curr_process_table + 11]*512 + i + 1];
+	tmp = [curr_process_table + 11]*512 + i;
+
+	[[child_process_table + 11]*512 + i] = [tmp];
+	[[child_process_table + 11]*512 + i + 1] = [tmp + 1];
+
+	if([tmp] == SEMAPHORE) then
+		[SEMAPHORE_TABLE  + 4*[tmp + 1] + 1] = [SEMAPHORE_TABLE  + 4*[tmp + 1] + 1] + 1;	//>>>>!!!!ERROR_PRONE!!!! CHECK ONCE<<<<<
+	endif;
 i = i + 2;
 endwhile;
 
@@ -150,7 +161,7 @@ endwhile;
 
 
 
-////////////////////////SEMAPHORE TABLE AND OPEN FILE TABLE NOT YRT DONE/////////////////////////
+///////////////////////(SEMAPHORE TABLE DONE) AND (OPEN FILE TABLE NOT YET DONE)////////////////////////
 
 
 
@@ -162,8 +173,10 @@ endwhile;
 //-------------------------copying DISK_MAP_TABLE form parent to CHILD---------------------------
 breakpoint;
 i = 0;		//NOTE!!! in expos STACK and USER_AERA pages don't get swapped out so dont worry about them
-while(i<10) do
-	[DISK_MAP_TABLE + ind*10 + i] = [DISK_MAP_TABLE + currPID*10 + i];
+
+tmp = DISK_MAP_TABLE + currPID*10;
+while(i<10) do 
+	[DISK_MAP_TABLE + ind*10 + i] = [tmp + i];
 i = i + 1;
 endwhile;
 
@@ -197,9 +210,10 @@ endwhile;
 //--------------------COPYING contents from PARENT_STACK to CHILD_STACK-------------------------
 breakpoint;
 i = 0;		//NOTE!!! both PAR and CHILD must have TWO STACK pages allocated by now
+tmp = [PTBR + 16]*512;
 while(i < 512) do
 	if([PTBR + 16] != -1) then
-		[[child_page_table + 16]*512 + i] = [[PTBR + 16]*512 + i];
+		[[child_page_table + 16]*512 + i] = [tmp + i];
 	endif;
 
 	if([PTBR + 18] != -1) then

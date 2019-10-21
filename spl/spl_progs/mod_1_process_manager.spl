@@ -8,8 +8,24 @@ alias named_local_2 R4;
 //--------------------FREE_USER_AREA_PAGE---------------------
 if(functionNum == FREE_USER_AREA_PAGE) then
 	alias userAreaPageNum R3;
+	alias i R4;
+
 	userAreaPageNum = [PROCESS_TABLE + PID*16 + 11];
-	
+
+	i = 0;
+	while(i < 8) do
+		if([userAreaPageNum*512 + 496 + 2*i] == SEMAPHORE) then
+			backup;		//insteasd of MULTIPUSH
+			R1 = userAreaPageNum;		//>>>!!!NOTICE!!!<<< R1 used as tmp first (cause R2, and R3 new values depend on the old value of each other, so R1 used as tmp in between) then finaly func)Num is stored in R1
+			R3 = PID;
+			R2 = [R1*512 + 496 + 2*i + 1];
+			R1 = RELEASE_SEMAPHORE;
+			call MOD_0;
+			restore; 	//instead of MULTIPOP
+		endif;
+	i = i + 1;
+	endwhile;
+
 	multipush(R0, R1, R2, R3, R4);
 	R1 = RELEASE_PAGE;
 	R2 = userAreaPageNum;

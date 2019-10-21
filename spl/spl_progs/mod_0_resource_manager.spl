@@ -1,6 +1,7 @@
 alias functionNum R1;
-alias currentPID R2;
-alias counter R3;
+alias currentPID R2;	//named local as sem_id in SEM_RELEASE
+alias counter R3;	//named local as currPID in SEM_RELEASE
+alias named_local R4;
 
 if(functionNum == 8) then
 	while([TERMINAL_STATUS_TABLE + 0] == 1) do
@@ -36,12 +37,16 @@ if(functionNum == 9) then
 	return;
 endif;
 
+
+
+
+
 if(functionNum == ACQUIRE_DISK) then
 	while([DISK_STATUS_TABLE + 0] == 1) do 
 		[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_DISK;
-		multipush(R0, R1, R2, R3);
+		multipush(R0, R1, R2, R3, R4);
 		call MOD_5;
-		multipop(R0, R1, R2, R3);
+		multipop(R0, R1, R2, R3, R4);
 	endwhile;
 						//LOCK the DISK when available
 	[DISK_STATUS_TABLE + 0] = 1;		//setting STATUS as 1 in DISK_STAT_TAB
@@ -51,4 +56,57 @@ if(functionNum == ACQUIRE_DISK) then
 endif;
 
 return;
+
+
+
+
+
+
+if(functionNum == ACQUIRE_SEMAPHORE) then
+	alias i R4;
+	i = 0;
+	while(i < MAX_SEM_COUNT) do
+		if([SEMAPHORE_TABLE + i*4 + 1] == 0) then
+			[SEMAPHORE_TABLE + i*4 + 1] = 1;	// make proess count to 1
+			[SEMAPHORE_TABLE + i*4 + 0] = -1;	//make locking PID to -1;
+							//if a free entry ids found in SEM_TAB
+			R0 = i;
+			return;
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+	
+	R0 = -1;		//return -1 if no entry free in SEM_TABLE
+	return;
+	
+endif;
+
+
+
+
+
+
+
+if(functionNum == RELEASE_SEMAPHORE) then
+	alias sem_id R2;
+	alias currPID R3;
+	alias i R4;
+	if([SEMAPHORE_TABLE + sem_id*4 + 0] == currPID) then
+		[SEMAPHORE_TABLE + sem_id*4 + 0] = -1;
+		i = 0;
+		while(i < MAX_PROC_NUM) do
+			if([PROCESS_TABLE + i*16 + 4] == WAIT_SEMAPHORE  && [PROCESS_TABLE + i*16 + 5] == sem_id) then
+				[PROCESS_TABLE + i*16 + 4] = READY;
+			endif;
+		i = i + 1;
+		endwhile;
+	endif;
+
+	[SEMAPHORE_TABLE + sem_id*4 + 1] = [SEMAPHORE_TABLE + sem_id*4 + 1] - 1;
+
+	R0 = 0;		//this will always be a success since sem_id will always be valid since it wil always be obtained from PER_PROCESS_TAB which will always get valid seM_ids from accquire semaphire func
+	return;
+ endif;
+
 
