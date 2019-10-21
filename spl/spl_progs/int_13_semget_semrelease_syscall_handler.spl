@@ -100,7 +100,7 @@ if(sysCallNum == 18) then
 		ireturn;
 	else	//things to do if sem_desc_ind is valid
 
-		sem_id = [curr_UAP_num*512 + (2*i) + 496 + 1];
+		sem_id = [curr_UAP_num*512 + (2*sem_desc_ind) + 496 + 1];
 
 		backup;	//instead of MULTIPUSH
 		R3 = cur_PID;
@@ -108,7 +108,16 @@ if(sysCallNum == 18) then
 		R2 = sem_id;
 		call MOD_0;	//calling module RELEASE_SEMAPHORE of RESOURCE_MANAGER
 		restore;	//insteaf of MULTIPOP
+
+		[curr_UAP_num*512 + (2*sem_desc_ind) + 496] = -1;
+		[curr_UAP_num*512 + (2*sem_desc_ind) + 496 + 1] = -1;
+
+		[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+		[curr_process_table + 9] = 0;
+		SP = [curr_process + 13];
+		ireturn;
 	endif;
+endif;
 
 //---------------------------DONE STARTING SYSCALL SPECIFIC IMPLEMENTATION---------------------------
 
