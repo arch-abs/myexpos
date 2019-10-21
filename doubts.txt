@@ -17,6 +17,13 @@
 
 7. In EXIT_SYS CALL we call EXIT_PROCESS also upon exit sys call the PER_PROCESS_RESOUURCE_TABLE must be invalidated, SEMAPHOREs and FILES opemed by itmust be closed etc. ...But this doesn't seem to happen.
 
+8. !!>>>>VVIMP<<<<In!! According to the specification of expos the KERNEL mem pages must always have count = 1 in the MEM_FREE_LIST. But when EXEC is execiuted from init (Ex. shell), RELEASE PAGE of the code page of init (page 65) occurs, hand hence it's MEM_FREE_COUNT becomes 0 ans MEM_FREE_COUNT is incremented. So now it is showing up as a free page as indicated by MEM_FREE_COUNT but it can never be allaocted by GET_FREE_PAGE, so it the entire physical mem is actually full then it can lead to problems. Also  during fork, the mem_FREE_COUNT of the init process increases to more than one.
+
+9. In RELEASE_SEMAPHORE function of process manager module at one place it ios mentioned that it takes only SEM_IND as arg while at other place it is mentioned that it takes currPID also. (!!....I have taken both....!!)
+
+
+
+
 
 
 
@@ -34,3 +41,7 @@ NOTES...WHICH MIGHT CAUSE PROBLEMS LATER..!!! REFER IN CASE OF FACING ANY PROBLE
 5. A process can be in CREATED state from 2 sources... either from FORK or INIT process created on boot. If a process is in CREATED from FORK then BP is stored on top of KERNEL_STACK, but it is not done so when INIT is CREATED on boot up. But while scheduling in a process in created state we restore the BP from top of KErnwL stack to BP. Wouldn't this cause any problem to the INIT bein gscheduled for the first time.i
 
 6. In EXIT_SYS CALL we call EXIT_PROCESS also upon exit sys call the PER_PROCESS_RESOUURCE_TABLE must be invalidated, SEMAPHOREs and FILES opemed by itmust be closed etc. ...But this doesn't seem to happen.
+
+7. !!>>>>VVIMP<<<<In!! According to the specification of expos the KERNEL mem pages must always have count = 1 in the MEM_FREE_LIST. But when EXEC is execiuted from init (Ex. shell), RELEASE PAGE of the code page of init (page 65) occurs, hand hence it's MEM_FREE_COUNT becomes 0 ans MEM_FREE_COUNT is incremented. So now it is showing up as a free page as indicated by MEM_FREE_COUNT but it can never be allaocted by GET_FREE_PAGE, so it the entire physical mem is actually full then it can lead to problems. Also  during fork, the mem_FREE_COUNT of the init process increases to more than one.
+
+

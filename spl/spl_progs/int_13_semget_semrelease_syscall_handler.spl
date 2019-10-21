@@ -6,7 +6,7 @@ alias curr_UAP_num R3;
 alias sysCallNum R5;
 alias i R6;
 alias sem_id R7;	//as returned by ACCQUIRE_SEM (the index fo semaphore in the SEMAPHORE_TAB)
-alias sem_desc R8;	//index of SEMAPHORE in the PER_PROCESS_RESOURCE_TAB
+alias sem_desc_ind R8;	//index of SEMAPHORE in the PER_PROCESS_RESOURCE_TAB
 
 
 currPID = [SYSTEM_STATUS_TABLE + 1];
@@ -44,8 +44,8 @@ if(sysCallNum == 17) then
                 SP = [curr_process_table + 13];
                 ireturn;
 	else			//things to do if a free entry is found ni PER_PROC_RES_TAB
-		[curr_UAP_num*512 + i] = SEMAPHORE;	//setting resource identifier for SEMAPHORE in free entry foun in PER_PROC_RES_TAB
 
+		sem_desc_ind = (i - 496)/2;
 
 		// <<<<<****calling ACCQUIRE_SEM****>>>>>
 		multipush (R0, R1, R2, R3, R5, R6, R8);
@@ -65,7 +65,11 @@ if(sysCallNum == 17) then
 		
 		else	//things to do if new SEM available
 			
-	
+			[curr_UAP_num*512 + i] = SEMAPHORE;	//setting resource identifier for SEMAPHORE in free entry foun in PER_PROC_RES_TAB
+			[curr_UAP_num*512 + i + 1] = sem_id;
+
+			[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = sem_desc_ind;
+
 			[curr_process_table + 9] = 0;
                	 	SP = [curr_process_table + 13];
 			ireturn;
@@ -74,10 +78,37 @@ if(sysCallNum == 17) then
 
 	endif;
 
-
-	
-
 endif;
+
+
+
+
+
+
+
+// *****syscallnum 18 for SEMRELEASE*****
+if(sysCallNum == 18) then
+	[curr_process_table + 9] = 18;
+	sem_desc_ind = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+	if(sem_desc_ind < 0 || sem_desc_ind > 7 || [curr_UAP_num*512 + (2*sem_desc_ind) + 496] != SEMAPHORE) then		//things to do if sem_desc_indis not valid
+		
+		[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+		
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+		ireturn;
+	else	//things to do if sem_desc_ind is valid
+
+		sem_id = [curr_UAP_num*512 + (2*i) + 496 + 1];
+
+		backup;	//instead of MULTIPUSH
+		R3 = cur_PID;
+		R1 = RELEASE_SEMAPHORE;
+		R2 = sem_id;
+		call MOD_0;	//calling module RELEASE_SEMAPHORE of RESOURCE_MANAGER
+		restore;	//insteaf of MULTIPOP
+	endif;
 
 //---------------------------DONE STARTING SYSCALL SPECIFIC IMPLEMENTATION---------------------------
 
