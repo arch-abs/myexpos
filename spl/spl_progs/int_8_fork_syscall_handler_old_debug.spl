@@ -1,0 +1,229 @@
+alias userSP R0;	//will be common for both PAR nad CHILD
+alias currPID R1;	//currPID is same as PARENT_PID
+alias curr_process_table R2;	//parent_process_table is same as curr_process_table
+
+alias i R6;
+alias ind R7; //ind will bw same as CHILD_PID
+alias child_process_table R8;
+alias child_page_table R9;	//parent_page_table can be accessed using PTBR
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+[curr_process_table + 9] = 8;
+
+multipush (R0, R1, R2, R6, R8, R9);
+R1 = GET_PCB_ENTRY;
+call MOD_1;
+ind = R0;
+multipop (R0, R1, R2, R6, R8, R9);	//notice R7 or IND not restored as it contains return value(index of free PCB entry)
+
+
+
+if(ind == -1) then
+	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;	//returing to user mode with ret value -1 if PCB not free
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+child_process_table = PROCESS_TABLE + ind*16;
+child_page_table = PAGE_TABLE_BASE + ind*20;
+
+//----------------------------CHECKING if heap page is allocated or not-------------------------
+if(([PTBR + 4] == -1) || [PTBR + 6] == -1 || [PTBR + 5] == "0000" || [PTBR + 5]=="1000" || [PTBR + 5]=="0010" || [PTBR + 5] == "0001" || [PTBR + 5]=="1010" || [PTBR + 5]=="1001" || [PTBR + 5] == "0011" || [PTBR + 5]=="1011" || [PTBR + 7] == "0000" || [PTBR + 7]=="1000" || [PTBR + 7]=="0010" || [PTBR + 7] == "0001" || [PTBR + 7]=="1010" || [PTBR + 7]=="1001" || [PTBR + 7] == "0011" || [PTBR + 7]=="1011") then
+
+	//Allocting HEAP PAGE 1
+	//multipush (R0, R1, R2, R6, R7, R8, R9);
+	backup;
+	R1 = GET_FREE_PAGE;
+	call MOD_2;
+	[PTBR + 4] = R0;
+	[PTBR + 5] = "0110";		//!!!!>>>CAUTION!!!<<<< might need to change REFERENCE_BIT to 1
+	restore;
+	//multipop (R0, R1, R2, R6 ,R7, R8, R9);
+
+
+
+	//Allocating HEAP PAGE 2
+	//multipush (R0, R1, R2, R6, R7, R8, R9);
+	backup;
+	R1 = GET_FREE_PAGE;
+	call MOD_2;
+	[PTBR + 6] = R0;
+	[PTBR + 7] = "0110";		//!!!!>>>CAUTION!!!<<<< might need to change REFERENCE_BIT to 1
+	restore;
+	//multipop (R0, R1, R2, R6, R7, R8, R9);
+endif;
+//-------------------DONE Allocating HEAP pages if not already allocated------------------------
+
+
+
+
+
+
+//-------------------------Allocating STACK and USER_AREA_PAGE of CHILD--------------------------
+
+// STACK_1 alloaction
+multipush (R0, R1, R2, R6, R7, R8, R9);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+[child_page_table + 16] = R0;
+[child_page_table + 17] = "0110";
+multipop (R0);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+
+// STACK_2 alloaction
+multipush (R0, R1, R2, R6, R7, R8, R9);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+[child_page_table + 18] = R0;
+[child_page_table + 19] = "0110";
+multipop (R0);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+
+//USER_AREA_PAGE Allocation
+multipush (R0, R1, R2, R6, R7, R8, R9);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop (R1, R2, R6, R7, R8, R9);	//>>>>>CAUTION!!!!<<<<<<NOTICE unusual popping...MIGHT NEED to change
+[child_process_table + 11] = R0;	//setting USER_AREA_PAGE_NO of CHILD_PROCESS
+multipop (R0);
+
+//--------------------------DONE Allocating STACK and USER_AREA_PAGE----------------------------
+
+
+
+
+
+
+//------------------------------setting up PROESS_TABLE of CHILD--------------------------------
+
+// copying USER_ID(3), SWAP_FLAG(6), INODE_INDEX(7),  USER_AREA-SWAP_STATUS(10), UPTR(13)
+[child_process_table + 3] = [curr_process_table + 3];
+[child_process_table + 6] = [curr_process_table + 6];
+[child_process_table + 7] = [curr_process_table + 7];
+[child_process_table + 10] = [curr_process_table + 10];
+[child_process_table + 13] = [curr_process_table + 13];
+
+//setting MODE(9), KPTR(12), TICK(0) to 0
+[child_process_table + 9] = 0;
+[child_process_table + 12] = 0;
+[child_process_table + 0] = 0;
+
+
+[child_process_table + 4] = CREATED;	//setting state od CHILD to CREATED (!!!THINK WHY..???)
+[child_process_table + 2] = currPID;	//seeting PPID to PID of parent
+
+// USER_AREA_PAGE(11) initialized above while Allocating
+// PID(1), PTBR(14), PTLR(15) are already initialized in GET_PCB_ENTRY
+// not required to initialize INPUT_BUFFER(8)
+
+//----------------------------DONE setting up PROESS_TABLE of CHILD------------------------------
+
+
+
+
+
+
+
+//------------------copying PER_PROCESS_RESOURCE_TABLE from parent to CHILD----------------------
+
+i = 496;
+while(i < 511) do
+	[[child_process_table + 11]*512 + i] = [[curr_process_table + 11]*512 + i];
+	[[child_process_table + 11]*512 + i + 1] = [[curr_process_table + 11]*512 + i + 1];
+i = i + 2;
+endwhile;
+
+//----------------DONE copying PER_PROCESS_RESOURCE_TABLE from parent to CHILD-------------------
+
+
+
+
+
+
+
+
+////////////////////////SEMAPHORE TABLE AND OPEN FILE TABLE NOT YRT DONE/////////////////////////
+
+
+
+
+
+
+
+
+//-------------------------copying DISK_MAP_TABLE form parent to CHILD---------------------------
+breakpoint;
+i = 0;		//NOTE!!! in expos STACK and USER_AERA pages don't get swapped out so dont worry about them
+while(i<10) do
+	[DISK_MAP_TABLE + ind*10 + i] = [DISK_MAP_TABLE + currPID*10 + i];
+i = i + 1;
+endwhile;
+
+//---------------------DONE -copying DISK_MAP_TABLE form parent to CHILD-------------------------
+
+
+
+
+
+
+//-----------------SETTING UP PAGE_TAB OF CHILD and incrementing MEME_FREE_LIST------------------
+breakpoint;
+i = 0;
+while(i<=14) do
+	[child_page_table + i] = [PTBR + i];
+	[child_page_table + i + 1] = [PTBR + i + 1];
+	if(i>=4 && ([PTBR + i] != -1)) then
+		[MEMORY_FREE_LIST + [PTBR + i]] = [MEMORY_FREE_LIST + [PTBR + i]] + 1;
+	endif;
+i = i + 2;
+endwhile;
+// STACK PAGES OF CHILD already mapped while allocating memory
+
+//---------------DONE SETTING UP PAGE_TAB OF CHILD and incrementing MEME_FREE_LIST---------------
+
+
+
+
+
+
+//--------------------COPYING contents from PARENT_STACK to CHILD_STACK-------------------------
+breakpoint;
+i = 0;		//NOTE!!! both PAR and CHILD must have TWO STACK pages allocated by now
+while(i < 512) do
+	if([PTBR + 16] != -1) then
+		[[child_page_table + 16]*512 + i] = [[PTBR + 16]*512 + i];
+	endif;
+
+	if([PTBR + 18] != -1) then
+		[[child_page_table + 18]*512 + i] = [[PTBR + 18]*512 + i];
+	endif;
+i = i + 1;
+endwhile;
+
+//------------------DONE COPYING contents from PARENT_STACK to CHILD_STACK----------------------
+
+
+
+
+
+
+
+[[child_process_table + 11]*512] = BP;		//putting BP on top of KERNEL_STACK of CHILD
+
+
+[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = ind;	//returing retvalue as PID of CHILD in user tack of PARENT
+
+[[child_page_table + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = 0;	//returing  retvalue as 0 in user tack of CHILD
+
+
+[curr_process_table + 9] = 0;
+SP = [curr_process_table + 13];
+ireturn;
