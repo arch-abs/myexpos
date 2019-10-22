@@ -19,16 +19,16 @@ newPID = 0;
 
 loop_counter = 0;
 while(loop_counter < 17) do
-		
+	if(counter>=16) then
+		counter = 1;
+	endif;
+	
 	new_process_table = PROCESS_TABLE + counter*16;
 	if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY) then
 		newPID = counter;
 		break;
 	endif;
 	counter = counter + 1;
-	if(counter==16) then
-		counter = 1;
-	endif;
 	loop_counter = loop_counter + 1;
 endwhile;
 

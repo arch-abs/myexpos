@@ -67,8 +67,8 @@ if(functionNum == ACQUIRE_SEMAPHORE) then
 	i = 0;
 	while(i < MAX_SEM_COUNT) do
 		//backup;
-		print i;
-		restore;
+		//print i;
+		//restore;
 		if([SEMAPHORE_TABLE + i*4 + 1] == 0) then
 			[SEMAPHORE_TABLE + i*4 + 1] = 1;	// make proess count to 1
 			[SEMAPHORE_TABLE + i*4 + 0] = -1;	//make locking PID to -1;

@@ -21,7 +21,11 @@
 
 9. In RELEASE_SEMAPHORE function of process manager module at one place it ios mentioned that it takes only SEM_IND as arg while at other place it is mentioned that it takes currPID also. (!!....I have taken both....!!)
 
+10. In Shell_2 the shell forks and parent shell waits for the child shell to complete execc of given command (wait happens using wait and signal systemcall), but the execed child may fork furthur, and the original shell(whlch execed) might exit but it's other children might still continue execution, but since parernt shell was waiting only for its original child and since now that has exited, shell can be scheduled again even if the other children of execcing shell have not exited. (example in parevod.xsm and 3forks.xsm).
 
+
+
+ 
 
 
 

@@ -40,7 +40,7 @@ child_page_table = PAGE_TABLE_BASE + ind*20;
 
 //----------------------------CHECKING if heap page is allocated or not-------------------------
 //>>>>>>> COMMMENTING THIS SINCE FORK WAS EXCEEDING 2 CODE BLOCKS (MIGHT NEED TOM CHANGE LATER)<<<<<<if(([PTBR + 4] == -1) || [PTBR + 6] == -1 || [PTBR + 5] == "0000" || [PTBR + 5]=="1000" || [PTBR + 5]=="0010" || [PTBR + 5] == "0001" || [PTBR + 5]=="1010" || [PTBR + 5]=="1001" || [PTBR + 5] == "0011" || [PTBR + 5]=="1011" || [PTBR + 7] == "0000" || [PTBR + 7]=="1000" || [PTBR + 7]=="0010" || [PTBR + 7] == "0001" || [PTBR + 7]=="1010" || [PTBR + 7]=="1001" || [PTBR + 7] == "0011" || [PTBR + 7]=="1011") then
-//curr_UAP_num = [curr_process_table + 11];
+//curr_AP_num = [curr_process_table + 11];
 //curr_UAP_num = [curr_process_table + 11];
 if(([PTBR + 4] == -1) || ([PTBR + 6] == -1))  then
 	//Allocting HEAP PAGE 1
@@ -138,7 +138,7 @@ multipop (R0);
 
 
 //------------------copying PER_PROCESS_RESOURCE_TABLE from parent to CHILD----------------------
-
+breakpoint;
 i = 496;
 while(i < 511) do
 	tmp = [curr_process_table + 11]*512 + i;
@@ -171,7 +171,7 @@ endwhile;
 
 
 //-------------------------copying DISK_MAP_TABLE form parent to CHILD---------------------------
-breakpoint;
+//breakpoint;
 i = 0;		//NOTE!!! in expos STACK and USER_AERA pages don't get swapped out so dont worry about them
 
 tmp = DISK_MAP_TABLE + currPID*10;
@@ -188,7 +188,7 @@ endwhile;
 
 
 //-----------------SETTING UP PAGE_TAB OF CHILD and incrementing MEME_FREE_LIST------------------
-breakpoint;
+//breakpoint;
 i = 0;
 while(i<=14) do
 	[child_page_table + i] = [PTBR + i];
@@ -208,7 +208,7 @@ endwhile;
 
 
 //--------------------COPYING contents from PARENT_STACK to CHILD_STACK-------------------------
-breakpoint;
+//breakpoint;
 i = 0;		//NOTE!!! both PAR and CHILD must have TWO STACK pages allocated by now
 tmp = [PTBR + 16]*512;
 while(i < 512) do

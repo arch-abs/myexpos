@@ -60,7 +60,8 @@ if(sysCallNum == 17) then
 		multipop (R0, R1, R2, R3, R5, R6, R8);
 
 
-		if(sem_id == -1) then	//things to do if no new SEM available
+
+	if(sem_id == -1) then	//things to do if no new SEM available
 			[[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -2;        //returning to user mode with -2 ret value indicating failure as no free entry im SEM_TAB
 
 			[curr_process_table + 9] = 0;
