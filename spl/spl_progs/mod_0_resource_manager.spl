@@ -55,7 +55,7 @@ if(functionNum == ACQUIRE_DISK) then
 	return;
 endif;
 
-return;
+//return;
 
 
 
@@ -66,13 +66,15 @@ if(functionNum == ACQUIRE_SEMAPHORE) then
 	alias i R4;
 	i = 0;
 	while(i < MAX_SEM_COUNT) do
+		//backup;
+		print i;
+		restore;
 		if([SEMAPHORE_TABLE + i*4 + 1] == 0) then
 			[SEMAPHORE_TABLE + i*4 + 1] = 1;	// make proess count to 1
 			[SEMAPHORE_TABLE + i*4 + 0] = -1;	//make locking PID to -1;
 							//if a free entry ids found in SEM_TAB
 			R0 = i;
 			return;
-			break;
 		endif;
 	i = i + 1;
 	endwhile;

@@ -49,10 +49,14 @@ if(sysCallNum == 17) then
 
 		// <<<<<****calling ACCQUIRE_SEM****>>>>>
 		multipush (R0, R1, R2, R3, R5, R6, R8);
-		R1 = ACQUIRE_SEMAPHORE;
 		R2 = currPID;
+		R1 = ACQUIRE_SEMAPHORE;
+		
 		call MOD_0;
-		sem_id = R0;		//>>>>>>NOTE!!!<<<<<< SEM_ID is in R& so its not  pushed or poped
+		sem_id = R0;		//>>>>>>NOTE!!!<<<<<< SEM_ID is in R7 so its not  pushed or poped
+		//backup;
+		//print R7;
+		//restore;
 		multipop (R0, R1, R2, R3, R5, R6, R8);
 
 
