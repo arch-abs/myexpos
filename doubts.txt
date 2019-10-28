@@ -23,7 +23,7 @@
 
 10. In Shell_2 the shell forks and parent shell waits for the child shell to complete execc of given command (wait happens using wait and signal systemcall), but the execed child may fork furthur, and the original shell(whlch execed) might exit but it's other children might still continue execution, but since parernt shell was waiting only for its original child and since now that has exited, shell can be scheduled again even if the other children of execcing shell have not exited. (example in parevod.xsm and 3forks.xsm).
 
-
+11. in create systemcall, if a file with that name is already present, then we retirn 0 indincating success, but what if the given permission with create is different from the permission of the already existing file with same name, (same is the case with user and file type).
 
  
 
@@ -48,4 +48,4 @@ NOTES...WHICH MIGHT CAUSE PROBLEMS LATER..!!! REFER IN CASE OF FACING ANY PROBLE
 
 7. !!>>>>VVIMP<<<<In!! According to the specification of expos the KERNEL mem pages must always have count = 1 in the MEM_FREE_LIST. But when EXEC is execiuted from init (Ex. shell), RELEASE PAGE of the code page of init (page 65) occurs, hand hence it's MEM_FREE_COUNT becomes 0 ans MEM_FREE_COUNT is incremented. So now it is showing up as a free page as indicated by MEM_FREE_COUNT but it can never be allaocted by GET_FREE_PAGE, so it the entire physical mem is actually full then it can lead to problems. Also  during fork, the mem_FREE_COUNT of the init process increases to more than one.
 
-
+8. in create systemcall, if a file with that name is already present, then we retirn 0 indincating success, but what if the given permission with create is different from the permission of the already existing file with same name, (same is the case with user and file type).

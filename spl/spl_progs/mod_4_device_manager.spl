@@ -1,5 +1,5 @@
 alias functionNum R1;
-alias currentPID R2;
+alias currentPID R2;		//same convention of input for both, disk load and store
 alias word_or_wordaddr_or_pageNum R3;
 alias blockNum R4;
 
@@ -21,6 +21,12 @@ if(functionNum == 3) then
 	multipop (R0, R1, R2, R3, R4);
 	return;
 endif;
+
+
+
+
+
+
 
 if(functionNum == 4) then
 	alias wordStoreAddress R3;
@@ -47,6 +53,11 @@ if(functionNum == 4) then
 endif;
 
 
+
+
+
+
+
 if(functionNum == DISK_LOAD) then
 	alias pageNum R3;
 
@@ -61,6 +72,37 @@ if(functionNum == DISK_LOAD) then
 	[DISK_STATUS_TABLE + 3] = blockNum;
 
 	load(pageNum, blockNum);
+	
+	[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_DISK;
+	multipush(R0, R1, R2, R3, R4);
+	call MOD_5;		//invoking scheduler after setting state to WAIT_DISK
+	multipop(R0, R1, R2, R3, R4);
+
+	return;
+endif;
+
+
+
+
+
+
+
+
+
+if(functionNum == DISK_STORE) then
+	alias pageNum R3;
+
+	multipush(R0, R1, R2, R3, R4);		//Accquiring DISK
+	R1 = ACQUIRE_DISK;
+	R2 = [SYSTEM_STATUS_TABLE + 1];		//REDUNDANT!!! as R2 itself is currPID
+	call MOD_0;
+	multipop(R0, R1, R2, R3, R4);
+
+	[DISK_STATUS_TABLE + 1] = 1;		//1 for DISK_STORE (and NOT LOAD)
+	[DISK_STATUS_TABLE + 2] = pageNum;
+	[DISK_STATUS_TABLE + 3] = blockNum;
+
+	store(pageNum, blockNum);
 	
 	[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_DISK;
 	multipush(R0, R1, R2, R3, R4);

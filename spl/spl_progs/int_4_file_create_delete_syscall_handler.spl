@@ -1,0 +1,234 @@
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+alias curr_UAP_num R3;
+
+alias sysCallNum R5;
+alias i R6;
+alias fileName R7;
+alias filePermission R8;
+alias inode_table_entry R9;
+alias root_file_entry R10;
+alias buffer_table_entry R11;
+alias ret_addr R12;
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+curr_UAP_num = [curr_process_table + 11];
+
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP =  [curr_process_table + 11]*512 - 1;
+
+sysCallNum = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+fileName = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+
+//-----------------------------STARTING SYSCALL SPECIFIC IMPLEMENTATION------------------------------
+
+// *****syscallnum 1 for fileCreate*****
+if(sysCallNum == 1) then
+	[curr_process_table + 9] = 1;	//mode flag to syscallnum
+	filePermission = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+	i  = 0;
+	while(i < MAX_FILE_NUM) do	//checking if file already present
+		if([INODE_TABLE + 16*i + 1] == fileName) then
+
+		//correction starts
+			root_file_entry = ROOT_FILE + i*16;
+
+		[root_file_entry + 0] = -1;
+		[root_file_entry + 1] = 0;	//filesize
+		[root_file_entry + 2] = -1;	//filetype
+		[root_file_entry + 3] = -1;	//storing user name corresponding to userID
+		[root_file_entry + 4] = -1;
+
+		root_file_entry = ROOT_FILE + i*8;
+		[root_file_entry + 0] = fileName;
+		[root_file_entry + 1] = 0;	//filesize
+		[root_file_entry + 2] = DATA;	//filetype
+		[root_file_entry + 3] = [USER_TABLE + 2*[curr_process_table + 3] + 0];	//storing user name corresponding to userID
+		[root_file_entry + 4] = filePermission;
+
+
+		//correction ends
+
+			[ret_addr] = 0;		//returning 0 if file already present
+
+			[curr_process_table + 9] = 0;
+        	        SP = [curr_process_table + 13];
+	                ireturn;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	//things to do if file not already present
+	i = 0;
+	while(i < MAX_FILE_NUM) do	//trying to find a free INODE entry
+		if([INODE_TABLE + 16*i + 1] == -1) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	if(i == MAX_FILE_NUM) then
+		[ret_addr] = -1;         //returning -1 if no free INODE entry found
+
+                [curr_process_table + 9] = 0;
+               	SP = [curr_process_table + 13];
+                ireturn;
+	else		//things to do if a free INODE entry is present
+
+		inode_table_entry = INODE_TABLE + i*16;
+		root_file_entry = ROOT_FILE + i*8;
+
+		[inode_table_entry + 1] = fileName;
+		[inode_table_entry + 0] = DATA;	//setting file type as DATA
+		[inode_table_entry + 2] = 0;		//file size
+
+		[inode_table_entry + 3] = [curr_process_table + 3];	//USERID from PER_PROC_TAB
+		[inode_table_entry + 4] = filePermission;
+
+	
+		[inode_table_entry + 8] = -1;	//setting 4 blocks to -1
+		[inode_table_entry + 9] = -1;
+		[inode_table_entry + 10] = -1;
+		[inode_table_entry + 11] = -1;
+	
+
+		[root_file_entry + 0] = fileName;
+		[root_file_entry + 1] = 0;	//filesize
+		[root_file_entry + 2] = DATA;	//filetype
+		[root_file_entry + 3] = [USER_TABLE + 2*[curr_process_table + 3] + 0];	//storing user name corresponding to userID
+		[root_file_entry + 4] = filePermission;
+
+
+                [ret_addr] = 0;         //returning 0 indicating success
+
+                [curr_process_table + 9] = 0;
+                SP = [curr_process_table + 13];
+                ireturn;
+	endif;
+		
+endif;
+
+
+
+
+
+// *****syscall 4 for fileDelete*****
+if(sysCallNum == 4) then
+	[curr_process_table + 9] = 4;
+	
+	i = 0;
+	while(i < MAX_FILE_NUM) do
+		if([INODE_TABLE + 16*i + 1] == fileName) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	if(i == MAX_FILE_NUM) then
+		[ret_addr] = 0;         //returning 0 if file already not present
+
+                [curr_process_table + 9] = 0;
+                SP = [curr_process_table + 13];
+                ireturn;
+
+	else	//if file to be deleted present in disk
+
+		inode_table_entry = INODE_TABLE + 16*i;
+		root_file_entry = ROOT_FILE + 8*i;
+
+		if([inode_table_entry + 0] != DATA) then	//if file present but not is DATA file
+			[ret_addr] = -1;         //returning -1 if file found but is NOT a DATA file
+			[curr_process_table + 9] = 0;
+               		SP = [curr_process_table + 13];
+			ireturn;
+		else		//if file to be deleted is a data file
+
+ 			if([inode_table_entry + 4] == 0 && [curr_process_table + 3] != 1 && [inode_table_entry + 3] != [curr_process_table + 3]) then
+				[ret_addr] = -1;         //if the file has resticted access and curruser is not ROOT(ROOT has userID 1) or OWNER of the file
+
+		                [curr_process_table + 9] = 0;
+              		 	SP = [curr_process_table + 13];
+                		ireturn;
+
+			else		//if file to be deleted has open access or curruser is ROOT or OWNER of the file
+//print (i);
+				backup;		//instead of MULTIPUSH
+					R3 = currPID;
+					R1 = ACQUIRE_INODE;
+					R2 = i;		//inode index which needs to be required
+					call MOD_0;	//calling accquire INODE of RESOURCE_MANAGER MOD
+				restore;	//instead of MULTIPOP
+
+				if([FILE_STATUS_TABLE + 4*i + 1] != -1) then	//if file has an open instance then can't be dltd
+
+					backup;		//instead of MULTIPUSH
+					R3 = currPID;
+					R1 = RELEASE_INODE;
+					R2 = i;		//inode index which needs to be required
+					call MOD_0;	//calling release INODE of RESOURCE_MANAGER MOD
+					restore;
+			
+					[ret_addr] = -2;         //returning -2 if file HAS an OPEN_INSTANCE
+					[curr_process_table + 9] = 0;
+               				SP = [curr_process_table + 13];
+					ireturn;	
+					
+				else	//if file doesn't have any open instance
+//		breakpoint;
+					i = 8;
+					while(i < 12) do
+						if([inode_table_entry + i] != -1) then
+							buffer_table_entry = BUFFER_TABLE + 4*([inode_table_entry + i] % MAX_BUFFER);
+							if([buffer_table_entry + 0] == [inode_table_entry + i] && [buffer_table_entry + 1] == 1) then
+								[buffer_table_entry + 1] = 0;	//reset DIRTY BIT  otherwise catatrophoc rests possible(thnk y)
+							endif;
+
+							backup;		//instead of multipush
+							R3 = currPID;
+							R1 = RELEASE_BLOCK;
+							R2 = [inode_table_entry + i];	//block num to be released
+							call MOD_2;		//calling releae_block of mem_manager_module
+							restore;	//instead of multipop
+
+						endif;
+					i = i + 1;
+					endwhile;
+//		breakpoint;	
+					[inode_table_entry + 1] = -1;	//invalidating inode_table_entry
+					[root_file_entry + 0] = -1;	//invlidating root_file_entry
+
+					backup;		//instead of MULTIPUSH
+					R3 = currPID;
+					R1 = RELEASE_INODE;
+					R2 = (inode_table_entry - INODE_TABLE)/16;		//inode index which needs to be required
+//			print R2;	
+					call MOD_0;	//calling release INODE of RESOURCE_MANAGER MOD
+					restore;
+//		breakpoint;	
+					[ret_addr] = 0;         //returning 0 FOR SUCCESS
+					[curr_process_table + 9] = 0;
+               				SP = [curr_process_table + 13];
+					ireturn;	
+
+				endif;
+
+			endif;
+		endif;
+	endif;
+endif;
+
+//--------------------------DONE STARTING SYSCALL SPECIFIC IMPLEMENTATION----------------------------
+
+[curr_process_table + 9] = 0;
+SP = [curr_process_table + 13];
+ireturn;

@@ -1,6 +1,6 @@
 alias functionNum R1;
-alias currentPID R2;	//named local as sem_id in SEM_RELEASE
-alias counter R3;	//named local as currPID in SEM_RELEASE
+alias currentPID R2;	//named local as sem_id in SEM_RELEASE, as inode_table_index
+alias counter R3;	//named local as currPID in SEM_RELEASE, ACQUIRE_INODE
 alias named_local R4;
 
 if(functionNum == 8) then
@@ -109,6 +109,71 @@ if(functionNum == RELEASE_SEMAPHORE) then
 
 	R0 = 0;		//this will always be a success since sem_id will always be valid since it wil always be obtained from PER_PROCESS_TAB which will always get valid seM_ids from accquire semaphire func
 	return;
- endif;
+endif;
 
 
+
+
+
+
+
+if(functionNum == ACQUIRE_INODE) then
+	alias inode_table_index R2;
+	alias currPID R3;
+
+	while([FILE_STATUS_TABLE + 4*inode_table_index + 0] != -1) do
+		[PROCESS_TABLE + 16*currPID + 4] = WAIT_FILE;
+		[PROCESS_TABLE + 16*currPID + 5] = inode_table_index;
+
+		backup;
+		call MOD_5;
+		restore;
+	endwhile;
+
+	if([INODE_TABLE + 16*inode_table_index + 1] == -1) then		//if file deleted, by the time inode was acquired
+		R0 = -1;
+		return;
+	else
+		[FILE_STATUS_TABLE + 4*inode_table_index + 0] = currPID;	//locking the INODE at desored index
+		R0 = 0;
+		return;
+	endif;
+
+endif;
+
+
+
+
+
+
+
+
+if(functionNum == RELEASE_INODE) then
+	alias inode_table_index R2;
+	alias currPID R3;
+	alias i R4;
+
+
+	if([FILE_STATUS_TABLE + 4*inode_table_index + 0] != currPID) then
+
+		R0 = -1;	//returning -1 as lockingPID is diffrent from process requesting to Release\
+		return;
+
+	else
+
+		[FILE_STATUS_TABLE + 4*inode_table_index + 0] = -1;
+
+		i = 0;
+		while(i < MAX_PROC_NUM) do
+			if([PROCESS_TABLE + 16*i + 4] == WAIT_FILE &&  [PROCESS_TABLE + 16*i + 5] == inode_table_index) then
+				[PROCESS_TABLE + 16*i + 4] = READY;
+			endif;
+		i = i + 1;
+		endwhile;
+
+		R0 = 0;
+		return;		
+
+	endif;
+
+endif;

@@ -1,0 +1,23 @@
+int main(){
+decl
+	int ret, filePermission;
+	str fileName;
+enddecl
+
+begin
+	ret = exposcall("Write", -2, "FilNam>?");
+	ret = exposcall("Read", -1, fileName);
+	ret = exposcall("Write", -2, "FilPer>?");
+	ret = exposcall("Read", -1, filePermission);
+
+	ret = exposcall("Create", fileName, filePermission);
+
+	if(ret == -1) then
+		ret = exposcall("Write", -2, "FAIL");
+	else
+		ret = exposcall("Write", -2, "PRSNTORSUCC");
+	endif;
+
+return 0;
+end
+}

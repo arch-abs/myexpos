@@ -1,0 +1,25 @@
+int main(){
+decl
+	int ret, x;
+	str fileName;
+enddecl
+
+begin
+	ret = exposcall("Write", -2, "FilNam>?");
+	ret = exposcall("Read", -1, fileName);
+
+	ret = exposcall("Delete", fileName);
+
+	if(ret == -1) then
+		x = exposcall("Write", -2, "FAILPERDEND");
+	else
+		if(ret == -2) then
+			x = exposcall("Write", -2, "FAILFILOPN");
+		else
+			x = exposcall("Write", -2, "N/AORSUCC");
+		endif;
+	endif;
+
+return 0;
+end
+}

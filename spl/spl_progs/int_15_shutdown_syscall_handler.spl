@@ -1,1 +1,69 @@
-halt;
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+
+
+
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+[curr_process_table + 9] = 21;		//setting mode to syscall number ofshutdown SYSACALL i.e. 21 in PROCESS_TABLE
+userSP = SP;
+
+[curr_process_table  + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+
+if([curr_process_table + 1] != 1 || [curr_process_table + 3] != 1) then	//if user is NOT ROOT or if the process trying to execute SHUTDOWN SYSCALL is NOT SHELL
+	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+else	//if the user is ROOT and calling process is ROOT
+
+	backup;		//writing back INODE_USER_TABLE
+	R2 = currPID;
+	R1 = DISK_STORE;
+	R3 = 59;
+	R4 = 3;
+	call MOD_4;
+	restore;
+
+	backup;
+	R2 = currPID;
+	R1 = DISK_STORE;
+	R3 = 60;
+	R4 = 4;
+	call MOD_4;
+	restore;
+
+
+	backup;		//writing back DISK_FREE_LIST
+	R2 = currPID;
+	R1 = DISK_STORE;
+	R3 = 61;
+	R4 = 2;
+	call MOD_4;
+	restore;
+
+
+	backup;		//writing back ROOT_FILE
+	R2 = currPID;
+	R1 = DISK_STORE;
+	R3 = 62;
+	R4 = 5;
+	call MOD_4;
+	restore;
+
+breakpoint;
+	halt;	//finally halting machine after writing back changes to disk
+endif;
+
+
+
+
+//[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = 0;
+
+ireturn;
