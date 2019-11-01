@@ -1,0 +1,211 @@
+alias functionNum R1;
+alias named_local_1 R2;
+alias named_local_2 R3;
+alias named_local_3 R4;
+alias named_local_4 R5;
+alias named_local_5 R6;
+
+//--------------------OPEN(file)---------------------
+if(functionNum == OPEN) then
+	alias fileName R2;		//passed as arg yo OPEN
+	alias inode_table_index R3;	//NOT passed as arg to OPEN
+	alias tmp R4;
+	alias i R5;
+	alias open_file_table_entry R6;
+
+	inode_table_index = 0;
+	while(inode_table_index < MAX_FILE_NUM) do
+		if([INODE_TABLE + 16*inode_table_index + 1] == fileName) then
+			break;
+		endif;
+	inode_table_index = inode_table_index + 1;
+	endwhile;
+
+	if(inode_table_index == MAX_FILE_NUM) then
+		R0 = -1;
+		return;
+	else
+		multipush(R0, R1, R2, R3, R4, R5, R6);
+		R1 = ACQUIRE_INODE;
+		R2 = inode_table_index;		//ACQUIRING INDOE
+		R3 = [SYSTEM_STATUS_TABLE + 1];
+		call MOD_0;
+		multipop(R1, R2, R3, R4, R5, R6);
+		tmp = R0;
+		multipop(R0);
+
+		if(tmp == -1) then	//if ACQUIRE_INDOE returned with error
+			R0 = -1;
+			return;
+		else			//if INODE ACQUIRED SUCCESSFULLY
+			if([INODE_TABLE + 16*inode_table_index + 0] == EXEC) then	//if file to open is EXEC
+				
+				backup;
+				R1 = RELEASE_INODE;
+				R2 = inode_table_index;		//releasing the INODE
+				R3 = [SYSTEM_STATUS_TABLE + 1];
+				call MOD_0;
+				restore;
+
+				R0 = -1;
+				return;
+			else			//if file to open is DATA or ROOT
+
+				i = 0;
+				while(i < MAX_OPENFILE_NUM) do
+					if([OPEN_FILE_TABLE + 4*i + 0] == -1) then
+						break;
+					endif;
+				i = i + 1;
+				endwhile;
+
+				if(i == MAX_OPENFILE_NUM) then
+
+					backup;
+					R1 = RELEASE_INODE;
+					R2 = inode_table_index;         //releasing the INODE
+                                	R3 = [SYSTEM_STATUS_TABLE + 1];
+					call MOD_0;
+					restore;
+
+					R0 = -2;	//returing -2 if already MAX_NUM of open file present in system
+                                	return;
+
+				else
+					open_file_table_entry = OPEN_FILE_TABLE + 4*i;
+					
+					if(fileName == "root") then
+						[open_file_table_entry + 0] = INODE_ROOT;
+					else
+						[open_file_table_entry + 0] = inode_table_index;
+						
+						if([FILE_STATUS_TABLE + 4*inode_table_index + 1] == -1) then
+							[FILE_STATUS_TABLE + 4*inode_table_index + 1] = 1;
+						else
+							[FILE_STATUS_TABLE + 4*inode_table_index + 1] = [FILE_STATUS_TABLE + 4*inode_table_index + 1] + 1;
+						endif;
+					endif;
+
+					[open_file_table_entry + 1] = 1;	//initializing OPN_INSTANCE_CNT to 1
+					[open_file_table_entry + 2] = 0;	//initializing LSEEK to 0
+
+					backup;
+                                        R1 = RELEASE_INODE;
+                                        R2 = inode_table_index;         //releasing the INODE
+                                        R3 = [SYSTEM_STATUS_TABLE + 1];
+                                        call MOD_0;
+                                        restore;
+
+					R0 = (open_file_table_entry - OPEN_FILE_TABLE)/4;	//retunring open_file_table_index upon success
+					return;
+				endif;
+
+			endif;
+		endif;
+	endif;
+endif;
+
+
+
+
+
+
+
+
+//----------------------CLOSE(FILE)-----------------------
+if(functionNum == CLOSE) then
+	alias open_file_table_index R2;
+	alias inode_table_index R3;
+	alias open_file_table_entry R4;
+	
+	open_file_table_entry = OPEN_FILE_TABLE + 4*open_file_table_index;
+
+	inode_table_index = [open_file_table_entry + 0];
+	[open_file_table_entry + 1] = [open_file_table_entry + 1] - 1;	//decre,enting open instance count
+
+	if([open_file_table_entry + 1] == 0) then	//if open instance count becomes 0
+		
+		[open_file_table_entry + 0] = -1;	//invalidating OPEN_FIL_TAB entry
+		[open_file_table_entry + 2] = -1;
+
+		if(inode_table_index != INODE_ROOT) then	//decrementig opn_fil_cnt if file is NOt ROOT
+
+			[FILE_STATUS_TABLE + 4*inode_table_index + 1] = [FILE_STATUS_TABLE + 4*inode_table_index + 1] - 1;
+
+		endif;
+
+		if([FILE_STATUS_TABLE + 4*inode_table_index + 1] == 0) then	//if OPN_FIL_CNT becomes ) then making it -1 (note, will nwver occur in case of ROOT file)
+			[FILE_STATUS_TABLE + 4*inode_table_index + 1] = -1;
+		endif;
+
+	endif;
+
+	return;
+	
+endif;
+
+
+
+
+
+
+
+
+//----------------------BUFFERED_READ-----------------------
+if(functionNum == BUFFERED_READ) then
+	alias disk_block_num R2;
+	alias offset R3;
+	alias physicalWordStoreAddress R4;
+	alias buffer_num R5;
+	alias buffer_table_entry R6;
+
+
+	buffer_num = disk_block_num % 4;
+	buffer_table_entry = BUFFER_TABLE + 4*buffer_num;
+
+	backup;
+		R1 = ACQUIRE_BUFFER;
+		R2 = buffer_num;	//passinfg BUFFER_NUMBER
+		R3 = [SYSTEM_STATUS_TABLE + 1];	//PID
+		call MOD_0;		//calling Acquire_BUFFER fn
+	restore;
+
+	if([buffer_table_entry + 0] != disk_block_num) then
+		if([buffer_table_entry + 1] == 1) then
+
+			backup;
+			R1 = DISK_STORE;
+			R2 = [SYSTEM_STATUS_TABLE + 1];
+			R3 = (BUFFER/512) + buffer_num;		//PAGE NUM (from BUFFER PAGE)
+			R4 = [buffer_table_entry + 0];	//block num
+			call MOD_4;
+			restore;
+
+			[buffer_table_entry + 0] = -1;		//clear the buffer table entry
+			[buffer_table_entry + 1] = 0;		//>>>!!!CAUTION!!!<<< it is mentioned tht all fields should be -1 for a free entry but I'm doing here 0
+
+		endif;
+
+		backup;
+		R4 = disk_block_num;			//BLOCK NUM of block to be loaded
+		R1 = DISK_LOAD;
+		R2 = [SYSTEM_STATUS_TABLE + 1];
+		R3 = (BUFFER/512) + buffer_num;		//PAGE_NUM of the allocated BUFFER_PAGE
+		call MOD_4;				//calling DISK_LOAD fn
+		restore;		
+
+		[buffer_table_entry + 0] = disk_block_num;
+
+	endif;
+
+	[physicalWordStoreAddress] = [BUFFER + 512*buffer_num + offset];
+
+	backup;
+		R1 = RELEASE_BUFFER;
+		R2 = buffer_num;	//passinfg BUFFER_NUMBER
+		R3 = [SYSTEM_STATUS_TABLE + 1];	//PID
+		call MOD_0;		//calling RELEASE_BUFFER fn
+	restore;
+
+	return;
+endif;

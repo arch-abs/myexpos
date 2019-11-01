@@ -57,7 +57,6 @@ else	//if the user is ROOT and calling process is ROOT
 	call MOD_4;
 	restore;
 
-breakpoint;
 	halt;	//finally halting machine after writing back changes to disk
 endif;
 

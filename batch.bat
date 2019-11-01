@@ -5,6 +5,7 @@ load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler.xsm
 load --int=console $HOME/myexpos/spl/spl_progs/console_interrupt_handler.xsm
 load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer2.xsm
 load --int=4 $HOME/myexpos/spl/spl_progs/int_4_file_create_delete_syscall_handler.xsm
+load --int=5 $HOME/myexpos/spl/spl_progs/int_5_file_open_close_seek_syscall_handler.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/int_6_write_syacall_handler.xsm
 load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7.xsm
 load --int=8 $HOME/myexpos/spl/spl_progs/int_8_fork_syscall_handler.xsm
@@ -17,6 +18,7 @@ load --int=15 $HOME/myexpos/spl/spl_progs/int_15_shutdown_syscall_handler.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/mod_0_resource_manager.xsm
 load --module 1 $HOME/myexpos/spl/spl_progs/mod_1_process_manager.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/mod_2_memory_manager.xsm
+load --module 3 $HOME/myexpos/spl/spl_progs/mod_3_file_manager.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/mod_4_device_manager.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/mod_5_scheduler.xsm
 load --module 7 $HOME/myexpos/spl/spl_progs/boot_module.xsm
@@ -33,6 +35,10 @@ load --exec $HOME/myexpos/expl/samples/mgsrtsq.xsm
 load --exec $HOME/myexpos/expl/samples/mgsrtcn.xsm
 load --exec $HOME/myexpos/expl/samples/filcrt.xsm
 load --exec $HOME/myexpos/expl/samples/fildlt.xsm
+load --exec $HOME/myexpos/expl/samples/rdprnfl.xsm
+load --exec $HOME/myexpos/expl/samples/rdpnflcn.xsm
 load --init $HOME/myexpos/expl/samples/shell_2.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --library $HOME/myexpos/expl/library.lib
+load --data $HOME/myexpos/expl/samples/sample.dat
+load --data $HOME/myexpos/expl/samples/numbers.dat

@@ -1,10 +1,27 @@
 alias userSP R0;
 alias currPID R1;
 alias curr_process_table R2;
-alias physicalPageNum R3;
-alias offset R4;
+
+//alias physicalPageNum R3;
+//alias offset R4;
+
+alias physicalWordStoreAddress R3;
+
 alias fileDescriptor R5;
 alias wordStoreAddress R6;
+alias curr_UAP_num R7;
+
+alias open_file_table_index R8;
+alias inode_table_index R9;
+
+alias ret_addr R10;
+alias tmp R11;
+alias lseek_addr R12;
+
+
+
+
+
 
 
 currPID = [SYSTEM_STATUS_TABLE + 1];
@@ -13,37 +30,149 @@ curr_process_table = PROCESS_TABLE + currPID*16;
 [curr_process_table + 9] = 7;		//setting mode to syscall number of write i.e. 7 in PROCESS_TABLE
 userSP = SP;
 
+curr_UAP_num = [curr_process_table + 11];
+
 [curr_process_table  + 13] = SP;
-SP = [curr_process_table + 11]*512 - 1;
+SP = curr_UAP_num*512 - 1;
+
+//physicalPageNum = [PTBR + 2*((userSP-4)/512)];
+//offset = (userSP-4)%512;
+
+fileDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+wordStoreAddress = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512);
 
 
 
-physicalPageNum = [PTBR + 2*((userSP-4)/512)];
-offset = (userSP-4)%512;
-
-fileDescriptor = [physicalPageNum*512 + offset];
 
 
+if(fileDescriptor != -1) then		//not -1 so NOT read from terminal so maybe from file
 
-if(fileDescriptor != -1) then
-	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;	//settin return value to -1 at correct place in user stack
+	if(fileDescriptor < 0  ||  fileDescriptor > 7) then	//if file_desc is invalid for a file
 
-else
-	physicalPageNum = [PTBR + 2*((userSP-3)/512)];
-	offset = (userSP-3)%512;
-	wordStoreAddress = [physicalPageNum*512 + offset];
+		[ret_addr] = -1;
 
-	multipush (R0, R1, R2, R3, R4, R5, R6);
-	R1 = 4;
+		[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+		SP = [curr_process_table + 13];		//restoring SP to USER STACK
+		ireturn;
+
+	else		//if file_desc is valid for a file
+		if([curr_UAP_num*512 + 496 + 2*fileDescriptor + 0] != FILE) then	//if given desc does not have an open file
+			[ret_addr] = -1;
+
+			[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+			SP = [curr_process_table + 13];		//restoring SP to USER STACK
+			ireturn;
+		else		//if the given desc indiactes an open file
+			open_file_table_index = [curr_UAP_num*512 + 496 + 2*fileDescriptor + 1];
+			inode_table_index = [OPEN_FILE_TABLE + 4*open_file_table_index + 0];
+
+			multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+				R3 = currPID;
+				R1 = ACQUIRE_INODE;
+				R2 = inode_table_index;
+				call MOD_0;
+			multipop (R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+				tmp = R0;
+			multipop(R0);
+
+			if(tmp == -1) then
+				[ret_addr] = -1;
+
+				[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+				SP = [curr_process_table + 13];		//restoring SP to USER STACK
+				ireturn;
+			else
+				lseek_addr = OPEN_FILE_TABLE + 4*open_file_table_index + 2;
+				physicalWordStoreAddress = [PTBR + 2*(wordStoreAddress/512)]*512 + (wordStoreAddress)%512;
+
+				if(inode_table_index == INODE_ROOT) then	//if file to be read if ROOTfile
+					if([lseek_addr] >= 480) then			//if lseek has already reached end of file
+
+						backup;
+						R3 = currPID;
+						R1 = RELEASE_INODE;
+						R2 = inode_table_index;		//RELEASE INODE
+						call MOD_0;
+						restore;
+
+						[ret_addr] = -2;		//ret -2 as lseek already at end of file
+
+						[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+						SP = [curr_process_table + 13];		//restoring SP to USER STACK
+						ireturn;
+
+					else		//if lseek still not at end of ROOTfile
+
+						[physicalWordStoreAddress] = [ROOT_FILE + [lseek_addr]];
+						[lseek_addr] = [lseek_addr] + 1;
+					endif;
+				else
+					if([lseek_addr] >= [INODE_TABLE + 16*inode_table_index + 2]) then	//if lseek already at end of file (lseek >= filesize)
+						backup;
+						R3 = currPID;
+						R1 = RELEASE_INODE;
+						R2 = inode_table_index;		//RELEASE INODE
+						call MOD_0;
+						restore;
+
+						[ret_addr] = -2;		//ret -2 as lseek already at end of file
+
+						[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+						SP = [curr_process_table + 13];		//restoring SP to USER STACK
+						ireturn;
+
+					else
+
+						backup;
+							R4 = physicalWordStoreAddress;
+							R1 = BUFFERED_READ; 			//calling BUFFERED_REDA of FILE_MANAGER
+							R2 = [INODE_TABLE+ 16*inode_table_index + 8 + ([lseek_addr]/512)];	//disk BLOCK num
+							R3 = [lseek_addr]%512;		//offset		
+							call MOD_3;
+						restore;
+
+						[lseek_addr] = [lseek_addr] + 1;	//increment lseek
+
+					endif;
+
+				endif;
+
+					backup;
+                                        R3 = currPID;
+                                        R1 = RELEASE_INODE;
+                                        R2 = inode_table_index;          //RELEASE INODE
+                                        call MOD_0;
+                                        restore;
+
+                                       	[ret_addr] = 0;                //ret 0 for success
+					[curr_process_table + 9] = 0;           //setting MODE FLAG to 0 before return to user mode
+                                        SP = [curr_process_table + 13];         //restoring SP to USER STACK
+                                        ireturn;
+
+			endif;
+
+		endif;
+
+	endif;
+
+else			//filr_desc -1 so read from terminal
+
+	//multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+	backup;
+	R1 = 4;			//calling TERMINAL READ
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	R3 = wordStoreAddress;
-	call MOD_4;		//calling DEVICE_MANAGER_MODULEI
-	multipop  (R0, R1, R2, R3, R4, R5, R6);
+	call MOD_4;		//calling DEVICE_MANAGER_MODULE
+	//multipop  (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+	restore;
 
-	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = 0;	//settin return value to 0 at correct place in user stack
+
+	[ret_addr] = 0;	//settin return value to 0 at correct place in user stack
+
+	[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
+	SP = [curr_process_table + 13];		//restoring SP to USER STACK
+	ireturn;
 endif;
 
-[curr_process_table + 9] = 0;		//setting MODE FLAG to 0 before return to user mode
-SP = [curr_process_table + 13];		//restoring SP to USER STACK
-
-ireturn;

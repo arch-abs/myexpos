@@ -1,0 +1,33 @@
+int main(){
+decl
+	str fileName;
+	int tmp, ret, x, fileDesc;
+enddecl
+
+begin
+	ret = exposcall("Write", -2, "FILNM>?");
+	ret = exposcall("Read", -1, fileName);
+
+ret = exposcall("Write", -2, "before");		//dbg
+breakpoint;					//dbg
+
+	fileDesc = exposcall("Open", fileName);
+	
+ret = exposcall("Write", -2, ">>!!DBG!!<<");	//dbg
+ret = exposcall("Write", -2, fileDesc);		//dbg
+
+
+	ret = 0;
+	while(ret == 0) do
+breakpoint;					//dbg
+		ret = exposcall("Read", fileDesc, x);
+		if(ret == -2 OR ret == -1) then
+			break;
+		else
+			tmp = exposcall("Write", -2, x);
+		endif;
+	endwhile;
+
+return 0;
+end
+}

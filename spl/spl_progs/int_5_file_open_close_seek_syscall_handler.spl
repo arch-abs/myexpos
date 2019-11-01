@@ -1,0 +1,139 @@
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+alias curr_UAP_num R3;
+
+alias sysCallNum R5;
+alias i R6;
+alias fileName R7;
+alias fileDesc R8;
+alias inode_table_entry R9;
+alias open_file_table_index R10;
+//alias 		R11;
+alias ret_addr R12;
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+curr_UAP_num = [curr_process_table + 11];
+
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = curr_UAP_num*512 - 1;
+
+sysCallNum = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+
+//-----------------------------STARTING SYSCALL SPECIFIC IMPLEMENTATION------------------------------
+
+// *****syscallnum 2 for fileOpen*****
+if(sysCallNum == 2) then
+	[curr_process_table + 9] = 2;	//mode flag to syscallnum
+	fileName = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+	i = 0;
+	while(i < 8) do
+		if([curr_UAP_num*512 + 496 + 2*i] == -1) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	if(i == 8) then		//if no PER_PROC_TAB entry free
+		[ret_addr] = -3;
+
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+		ireturn;
+
+	else			//if a free PER_PROC_TAB_ENTRY is found
+		fileDesc = i;	//index of the fee PER_PROC_TAB entry will be the new fileDESC
+
+		multipush(R0, R1, R2, R3, R5, R6, R7, R8, R9, R10, R11, R12);
+		R1 = OPEN;
+		R2 = fileName;
+		call MOD_3;		//calling OPEN function of file_AMANGER module
+		multipop(R1, R2, R3, R5, R6, R7, R8, R9, R10, R11, R12);
+		R10 = R0;		//OPEN_FILE_TAB index is stored in R10
+		multipop(R0);
+
+		if(open_file_table_index < 0) then	//things to do if OPEN function failed (ex. file not found, file is EXEC(not ROOT or DATA file), OPEN_FILE_TAB full etc.)
+
+			[ret_addr] = open_file_table_index;
+
+			[curr_process_table + 9] = 0;
+			SP = [curr_process_table + 13];
+			ireturn;
+
+		else	//if a valid OPEN file TABLE entry was returnded
+
+			[curr_UAP_num*512 + 496 + 2*fileDesc + 0] = FILE;
+			[curr_UAP_num*512 + 496 + 2*fileDesc + 1] = open_file_table_index;
+
+			[ret_addr] = fileDesc;
+
+			[curr_process_table + 9] = 0;
+			SP = [curr_process_table + 13];
+			ireturn;
+		endif;
+
+	endif;
+		
+endif;
+
+
+
+
+
+// *****syscall 3 for fileClose*****
+if(sysCallNum == 3) then
+	[curr_process_table + 9] = 3;
+	fileDesc = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+	if(fileDesc < 0 || fileDesc > 7) then		//if fileDesc invalid
+		[ret_addr] = -1;
+
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+		ireturn;
+
+	else	//if fileDesc valid
+
+		if([curr_UAP_num*512 + 496 + 2*fileDesc + 0] != FILE) then	//if per-PROC_TAB entry is not for FILE ie (INVALID or SEMAPHORE)
+
+			[ret_addr] = -1;
+
+			[curr_process_table + 9] = 0;
+			SP = [curr_process_table + 13];
+			ireturn;
+		else	//if the PER_PROC_TAB entry is for FILE
+			
+			open_file_table_index = [curr_UAP_num*512 + 496 + 2*fileDesc + 1];
+
+			backup;
+			R1 = CLOSE;		//calling close func of FILE_MANAGER MODULE
+			R2 = open_file_table_index;
+			call MOD_3;
+			restore;
+
+			[curr_UAP_num*512 + 496 + 2*fileDesc + 0] = -1;		//invalidating PER_PROC_RES_TAB entry
+
+			[ret_addr] = 0;
+
+			[curr_process_table + 9] = 0;
+			SP = [curr_process_table + 13];
+			ireturn;
+		endif;
+
+	endif;
+endif;
+
+//--------------------------DONE STARTING SYSCALL SPECIFIC IMPLEMENTATION----------------------------
+
+[curr_process_table + 9] = 0;
+SP = [curr_process_table + 13];
+ireturn;

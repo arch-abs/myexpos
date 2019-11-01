@@ -146,9 +146,14 @@ while(i < 511) do
 	[[child_process_table + 11]*512 + i] = [tmp];
 	[[child_process_table + 11]*512 + i + 1] = [tmp + 1];
 
-	if([tmp] == SEMAPHORE) then
+	if([tmp] == SEMAPHORE) then		//incrementing shared count in SEM_TAB
 		[SEMAPHORE_TABLE  + 4*[tmp + 1] + 1] = [SEMAPHORE_TABLE  + 4*[tmp + 1] + 1] + 1;	//>>>>!!!!ERROR_PRONE!!!! CHECK ONCE<<<<<
 	endif;
+
+	if([tmp] == FILE) then			//incrementing shared open instance count in OPN_FIL_TAB
+		[OPEN_FILE_TABLE  + 4*[tmp + 1] + 1] = [OPEN_FILE_TABLE  + 4*[tmp + 1] + 1] + 1;	//>>>>!!!!ERROR_PRONE!!!! CHECK ONCE<<<<<
+	endif;
+
 i = i + 2;
 endwhile;
 
