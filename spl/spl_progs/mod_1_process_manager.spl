@@ -163,3 +163,73 @@ if(functionNum == GET_PCB_ENTRY) then
 	R0 = -1;	//return value if no free entry found
 	return;
 endif;
+
+
+
+
+
+
+
+//--------------------------------------------KILL_ALL--------------------------------------------
+if(functionNum == KILL_ALL) then
+	alias i R4;
+
+	i = 0;
+	while(i < MAX_FILE_NUM) do    //Lock all files to ensure that no processes are in the middle of a file operation 
+		if([INODE_TABLE + 16*i + 1] != -1) then
+			backup;
+			R1 = ACQUIRE_INODE;
+			R3 = PID;
+			R2 = i;
+			call MOD_0;
+			restore;
+		endif;
+	i = i + 1;
+	endwhile;
+
+
+	//>>>>!!!!caution!!!!<<<<
+	//>>>>!!!!caution!!!!<<<<
+	//>>>>!!!!caution!!!!<<<<
+	//>>>>!!!!CAUTION!!!!<<<<
+	//>>>>!!!!caution!!!!<<<<
+	//>>>>!!!!CAUTION!!!!<<<<
+	//>>>>!!!!caution!!!!<<<<
+
+	i = 2;	//calling EXIT_PROCESS for all process except DAEMON(pid 15), curr_process, idle and init
+	while(i <  MAX_PROC_NUM) do
+
+		//if((i != 15) && ([PROCESS_TABLE + 16*i + 4] != TERMINATED) && (i != PID)) then
+
+		if(([PROCESS_TABLE + 16*i + 4] != TERMINATED) && (i != PID)) then
+
+			backup;
+			R1 = EXIT_PROCESS;
+			R2 = i;
+			call MOD_1;
+			restore;
+		endif;
+
+	i = i + 1;
+	endwhile;
+
+
+
+	i = 0;
+	while(i < MAX_FILE_NUM) do    //release inode lock of all file s acquired before 
+		if([INODE_TABLE + 16*i + 1] != -1) then
+			backup;
+			R1 = RELEASE_INODE;
+			R3 = PID;
+			R2 = i;
+			call MOD_0;
+			restore;
+		endif;
+	i = i + 1;
+	endwhile;
+
+
+	return;
+
+endif;
+

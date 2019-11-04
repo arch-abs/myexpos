@@ -205,6 +205,12 @@ if(sysCallNum == 4) then
 					endwhile;
 //		breakpoint;	
 					[inode_table_entry + 1] = -1;	//invalidating inode_table_entry
+
+					[inode_table_entry + 8] = -1;	//setting 4 blocks to -1
+					[inode_table_entry + 9] = -1;
+					[inode_table_entry + 10] = -1;
+					[inode_table_entry + 11] = -1;
+
 					[root_file_entry + 0] = -1;	//invlidating root_file_entry
 
 					backup;		//instead of MULTIPUSH

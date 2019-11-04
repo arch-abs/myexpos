@@ -1,45 +1,245 @@
+//NOTE: A serious flaw in the write design is there which allows ROOT and DATA files to be written.
+
+
+
+
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 9] = 5;
 
-//saving userSP into r0
+
+
+breakpoint; 			//dbg
+
+
 alias userSP R0;
+
+//alias physicalPageNum R1;
+//alias offset R2;
+//alias fileDescPhysicalAddr R3;
+
+alias lseek_addr R1;
+
+alias fileDescriptor R4;
+alias word R5;
+
+alias curr_process_table R6;
+alias curr_UAP_num R7;
+alias currPID R8;
+
+alias open_file_table_entry R9;
+alias inode_table_index R10;
+alias tmp R11;
+alias ret_addr R12;
+
+
+
+
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
 userSP = SP;
 
+curr_process_table = PROCESS_TABLE + 16*currPID;
+curr_UAP_num = [curr_process_table + 11];
+
+
 //saving value of userSP into UPTR fied entry of process table
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+[curr_process_table + 13] = SP;
+SP = curr_UAP_num*512 - 1;
 //value to SP ahould be changed to KTPR but ignored here as assumed to be empty when coming from a user program so 0 realtive to user page area
 
 
-alias physicalPageNum R1;
-alias offset R2;
-alias fileDescPhysicalAddr R3;
-physicalPageNum = [PTBR + 2*((userSP-4)/512)];
-offset  = (userSP-4)%512;
-fileDescPhysicalAddr = (physicalPageNum*512) + offset;
-alias fileDescriptor R4;
-fileDescriptor = [fileDescPhysicalAddr];
+
+fileDescriptor = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+word = [[PTBR +2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512);
 
 if(fileDescriptor != -2) then
-	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;
-else
-	alias word R5;
-	word = [[PTBR +2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+
+	if(fileDescriptor < 0 || fileDescriptor > 7) then	//if firDesc in INVALID
+
+		[ret_addr] = -1;
 	
-	multipush (R0, R1, R2, R3, R4, R5);
-	//print word;
+		SP = userSP;
+		[curr_process_table + 9] = 0;
+		ireturn;
+	else			//if fileDesc is valid
+
+		if([curr_UAP_num*512 + 496 + 2*fileDescriptor + 0] != FILE) then	//if filr desc doesn't coreespond to a file
+
+			[ret_addr] = -1;
+
+	                SP = userSP;
+        	        [curr_process_table + 9] = 0;
+			ireturn;
+		else			//if fileDecs corresponds to a file
+
+			open_file_table_entry = OPEN_FILE_TABLE + 4*[curr_UAP_num*512 + 496 + 2*fileDescriptor + 1];
+			inode_table_index = [open_file_table_entry + 0];
+
+			if([INODE_TABLE + 16*inode_table_index + 4] == EXCLUSIVE && [curr_process_table + 3] != 1  &&  [curr_process_table + 3] != [INODE_TABLE + 16*inode_table_index + 3]) then	//if file has exclusive permission and current user is not the owner of the file or root
+
+				[ret_addr] = -3;
+
+			        SP = userSP;
+        			[curr_process_table + 9] = 0;
+     				ireturn;
+
+			else		//if the present user has rights to delete the given file;
+
+				multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                                R3 = currPID;
+                                R1 = ACQUIRE_INODE;
+                                R2 = inode_table_index;
+                                call MOD_0;
+                        		multipop (R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                                tmp = R0;
+								multipop(R0);
+
+				if(tmp == -1) then	//if acquire inode fails
+
+					[ret_addr] = -1;
+
+                                	[curr_process_table + 9] = 0;           
+                                	SP = [curr_process_table + 13];
+                                	ireturn;
+				else			//if acquire inode succeeds
+					lseek_addr = open_file_table_entry + 2;
+
+					if([lseek_addr] >= MAX_FILE_SIZE) then	//file size maxedout
+
+						backup;
+						R3 = currPID;
+						R1 = RELEASE_INODE;
+						R2 = inode_table_index;         //RELEASE INODE
+						call MOD_0;
+						restore;
+
+						[ret_addr] = -2;                //ret -2 as file sizeMAXED_OUT
+						[curr_process_table + 9] = 0;
+						SP = [curr_process_table + 13];
+						ireturn;
+
+					else		//file size still not maxed out
+
+						if([lseek_addr]%512 == 0 && [lseek_addr] == [INODE_TABLE + 16*inode_table_index + 2]) then	//this way of checking whether new block is to be allocated(NOTE that while deleting a file we don't need to set -1 in disk blocks field of inode, that's why we are using this method of using file size)
+
+							multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+							R1 = GET_FREE_BLOCK;
+							call MOD_2;
+							multipop (R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+							tmp = R0;		//assigning free block num returned
+							multipop (R0);
+							
+							if(tmp == -1) then	//if no disk block free
+
+								backup;
+								R3 = currPID;
+								R1 = RELEASE_INODE;
+								R2 = inode_table_index;         //RELEASE INODE
+								call MOD_0;
+								restore;
+
+								[ret_addr] = -2;                //ret -2 as no free disk block
+
+								[curr_process_table + 9] = 0;
+								SP = [curr_process_table + 13];
+								ireturn;
+
+							else
+								[INODE_TABLE + 16*inode_table_index + 8 + ([lseek_addr]/512)] = tmp;	//storing returned block num in inode table block entry
+							endif;
+
+						endif;
+
+						backup;
+						R2 = [INODE_TABLE + 16*inode_table_index + 8 + ([lseek_addr]/512)];	//physical block num
+						R3 = [lseek_addr]%512;		//offset
+						R4 = word;			//word to write
+						R1 = BUFFERED_WRITE;
+						call MOD_3;
+						restore;
+
+						if([lseek_addr] == [INODE_TABLE + 16*inode_table_index + 2]) then	//incrementing file size if ord written at the end of file
+							[INODE_TABLE + 16*inode_table_index + 2] = [INODE_TABLE + 16*inode_table_index + 2] + 1;
+							[ROOT_FILE + 8*inode_table_index + 1] = [ROOT_FILE + 8*inode_table_index + 1] + 1;
+						endif;
+
+						[lseek_addr] = [lseek_addr] + 1;
+
+					endif;
+
+
+							//backup;
+							//R3 = currPID;
+							//R1 = RELEASE_INODE;
+							//R2 = inode_table_index;         //RELEASE INODE
+							//call MOD_0;
+							//restore;
+
+							//[ret_addr] = 0;                //ret 0 for success
+
+							//[curr_process_table + 9] = 0;
+							//SP = [curr_process_table + 13];
+							//ireturn;
+
+				endif;
+
+				backup;
+				R3 = currPID;
+				R1 = RELEASE_INODE;
+				R2 = inode_table_index;         //RELEASE INODE
+				call MOD_0;
+				restore;
+
+				[ret_addr] = 0;                //ret 0 for success
+
+				[curr_process_table + 9] = 0;
+				SP = [curr_process_table + 13];
+				ireturn;
+
+			endif;
+
+		endif;
+
+
+	endif;
+	
+
+
+	//[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;
+
+else
+	
+	//multipush (R0, R1, R2, R3, R4, R5);
+	backup;
+		//print word;
 	R1 = 3;
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	R3 = word;
 
 	call MOD_4;   //----calling device manager module for terminalWrite------
 
-	multipop (R0, R1, R2, R3, R4, R5);
+	//multipop (R0, R1, R2, R3, R4, R5);
+	restore;
 
-	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = 0;
+
+
+	[ret_addr] = 0;
+	
+	SP = userSP;
+	[curr_process_table + 9] = 0;
+	ireturn;
 endif;
+
+
+
+
+
+
 
 SP = userSP;
 
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
+[curr_process_table + 9] = 0;
 ireturn;
 

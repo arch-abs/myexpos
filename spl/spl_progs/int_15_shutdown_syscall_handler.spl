@@ -1,7 +1,7 @@
 alias userSP R0;
 alias currPID R1;
 alias curr_process_table R2;
-
+alias i R3;
 
 
 
@@ -15,6 +15,15 @@ userSP = SP;
 [curr_process_table  + 13] = SP;
 SP = [curr_process_table + 11]*512 - 1;
 
+
+
+
+//>>>>>>!!!!CAUTION!!!!<<<<<<< 
+//>>>>>>!!!!CAUTION!!!!<<<<<<< 
+//>>>>>>!!!!CAUTION!!!!<<<<<<< 
+//>>>>>>!!!!CAUTION!!!!<<<<<<< 
+//>>>>>>!!!!CAUTION!!!!<<<<<<< 
+//>>>>>>!!!!CAUTION!!!!<<<<<<< CHANGE THE PID OF SHLL TO 2 in IF CONDITON after stage 26
 if([curr_process_table + 1] != 1 || [curr_process_table + 3] != 1) then	//if user is NOT ROOT or if the process trying to execute SHUTDOWN SYSCALL is NOT SHELL
 	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;
 
@@ -22,6 +31,33 @@ if([curr_process_table + 1] != 1 || [curr_process_table + 3] != 1) then	//if use
 	SP = [curr_process_table + 13];
 	ireturn;
 else	//if the user is ROOT and calling process is ROOT
+
+
+	backup;		//to kill all proccesses except curr_Proc, intin and idle
+	R2 = currPID;
+	R1 = KILL_ALL;
+	call MOD_1;	//calling KILL_ALL of PROCESS_MANAGER module
+	restore;
+
+
+
+	i = 0;
+	while(i < MAX_BUFFER) do
+		if([BUFFER_TABLE + 4*i + 1] == 1) then
+
+			backup;         //writing back buffer pages if dirty
+			R2 = currPID;
+			R1 = DISK_STORE;
+			R4 = [BUFFER_TABLE + 4*i + 0];	//block_num
+			R3 = (BUFFER/512) + i;		//page_num
+			call MOD_4;
+			restore;
+
+		endif;
+	i = i + 1;
+	endwhile;
+
+
 
 	backup;		//writing back INODE_USER_TABLE
 	R2 = currPID;

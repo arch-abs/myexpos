@@ -71,6 +71,8 @@ endif;
 
 
 
+
+
 //-------------------------------GET_CODE_PAGE--------------------------------------
 if(funcNum == GET_CODE_PAGE) then
 	alias blockNum R2;
@@ -114,9 +116,40 @@ endif;
 
 
 
+
+
+
+
 //-------------------------------RELEASE_BLOCK--------------------------------------
 if(funcNum == RELEASE_BLOCK) then
 	alias blockNum R2;
 	[DISK_FREE_LIST + blockNum] = [DISK_FREE_LIST + blockNum] - 1;		//decrementing count of corresponding block in DISK_FREE_LIST
 	return;
 endif;
+
+
+
+
+
+
+
+//---------------------------------GET_FREE_BLOCK------------------------------------
+if(funcNum == GET_FREE_BLOCK) then
+	alias i R2;
+
+	i = DISK_FREE_AREA;
+	while(i < DISK_SWAP_AREA) do
+		if([DISK_FREE_LIST + i] == 0) then
+			[DISK_FREE_LIST + i] = 1;	//setting found free block in dfl to 1
+			R0 = i;				//returing free block num found
+			return;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	//	return -1 if no free block present
+	R0 = -1;
+	return;
+
+endif;
+

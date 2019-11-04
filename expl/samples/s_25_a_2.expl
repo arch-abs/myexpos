@@ -1,0 +1,52 @@
+int main(){
+
+decl
+	int fd, ret, tmp, x, fp, i;	//fp for file_permission
+	str fname, data;
+enddecl
+
+begin
+	write("FL_NM>?");
+	ret = exposcall("Read", -1, fname);
+
+
+	fd = exposcall("Open", fname);
+
+	if(fd>=0  AND  fd<=7) then	//if open file succeess
+
+		ret = exposcall("Seek", fd, 2500); //lseek to a value more than MAX_FILE_SIZE SO THAT LSeek REACHES END OF FILE
+
+		i=2000;
+		while(i <= 2513) do
+			ret = exposcall("Write", fd, i);
+		i = i + 1;
+		endwhile;
+
+
+		ret = exposcall("Seek", fd, -1);
+
+		while (ret == 0) do
+
+			ret = exposcall("Read", fd, data);
+			if(ret == 0) then
+				write(data);
+			else
+				break;
+			endif;
+
+			ret = exposcall("Seek", fd, -2);
+
+		endwhile;
+
+
+	else	//if open file fails
+
+		write("ER_opnFL");
+
+	endif;
+
+
+return 0;
+end
+
+}

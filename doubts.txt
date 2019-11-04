@@ -28,7 +28,9 @@
 12. Last word not loaded in DATA files using xfs-interface. Ex. in sample.dat
 But Akash's numbers.dat was loading properly but not my numbers.dat
 
+13. After ACQUIRE_INODE in delete and create system call why we donot check if inode was ACQUIRED or not...(remember we do chech this in write and read syscalls after accquiring inode)
 
+14. A serious flaw in the write systemcall  design is there which allows ROOT and DATA files to be written, which should not be so according to the system specification.
 
  
 
@@ -57,3 +59,8 @@ NOTES...WHICH MIGHT CAUSE PROBLEMS LATER..!!! REFER IN CASE OF FACING ANY PROBLE
 
 9. Last word not loaded in DATA files using xfs-interface. Ex. in sample.dat
 But Akash's numbers.dat was loading properly but not my numbers.dat
+
+
+10. After ACUIRE_INODE in delete system call why we donot check if inode was ACQUIRED or not...(remember we do chech this in write and read syscalls after accquiring inode)
+
+11. A serious flaw in the write systemcall  design is there which allows ROOT and DATA files to be written, which should not be so according to the system specification.

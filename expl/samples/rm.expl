@@ -1,0 +1,27 @@
+int main(){
+
+decl
+	int ret, tmp;
+	str fname;
+enddecl
+
+begin
+
+	ret = exposcall("Write", -2, "FILNM>?");
+
+	ret = exposcall("Read", -1, fname);
+
+	ret = exposcall("Delete", fname);
+
+	if(ret == -1) then
+		write("ER_PRM_DEND");
+	endif;
+	
+	if(ret == -2) then
+		write("ER_FIL_OPN");
+	endif;
+	
+return 0;
+end
+
+}

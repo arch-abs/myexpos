@@ -1,0 +1,39 @@
+int main(){
+decl
+	int ret, fileDesc, tmp;
+	str fname;
+enddecl	
+
+begin
+	fileDesc = exposcall("Open", "root");
+
+	if(fileDesc >= 0  AND  fileDesc <= 7) then	//if opening root was a success
+
+		ret = exposcall("Read", fileDesc, fname);
+		while(ret == 0) do
+
+			if(fname != "-1") then
+				tmp = exposcall("Write", -2, fname);
+			endif;
+
+			ret = exposcall("Seek", fileDesc, 7);
+
+//write(ret);	//dbg
+
+			if(ret == 0) then
+				ret = exposcall("Read", fileDesc, fname);
+			else
+				break;
+			endif;
+		endwhile;
+
+		tmp = exposcall("Close", fileDesc);
+
+	else
+		tmp = exposcall("Write", -2, "ERRopnROOT");
+	endif;
+
+return 0;
+end
+
+}

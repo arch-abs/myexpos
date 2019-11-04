@@ -1,0 +1,51 @@
+int main(){
+decl
+	str fileName;
+	int tmp, ret, x, fileDesc;
+enddecl
+
+begin
+	ret = exposcall("Write", -2, "FILNM>?");
+	ret = exposcall("Read", -1, fileName);
+
+//ret = exposcall("Write", -2, "before");		//dbg
+//breakpoint;						//dbg
+
+	fileDesc = exposcall("Open", fileName);
+	
+//ret = exposcall("Write", -2, ">>!!DBG!!<<");		//dbg
+//ret = exposcall("Write", -2, fileDesc);		//dbg
+
+
+
+	if(fileDesc >= 0 AND fileDesc <= 7) then
+
+		ret = 0;
+		while(ret == 0) do
+//breakpoint;						//dbg
+			ret = exposcall("Read", fileDesc, x);
+			if(ret == -2 OR ret == -1) then
+				break;
+			else
+				tmp = exposcall("Write", -2, x);
+			endif;
+		endwhile;
+	endif;
+
+
+	if(fileDesc == -1) then
+		write("FL_NT_FND");
+	endif;
+
+	if(fileDesc == -2) then
+		write("MXsysOPNflLMT");
+	endif;
+
+
+	if(fileDesc == -3) then
+		write("MXprocRSlmt");
+	endif;
+
+return 0;
+end
+}

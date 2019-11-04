@@ -3,13 +3,15 @@ alias currPID R1;
 alias curr_process_table R2;
 alias curr_UAP_num R3;
 
+alias lseek_addr R4;
+
 alias sysCallNum R5;
 alias i R6;
-alias fileName R7;
+alias fileName R7;		//renamed local as offset in SEEK syscall
 alias fileDesc R8;
-alias inode_table_entry R9;
+alias inode_table_entry R9;	//renamed as inode_table_index in SEEK syscall 
 alias open_file_table_index R10;
-//alias 		R11;
+alias tmp R11;
 alias ret_addr R12;
 
 
@@ -53,11 +55,11 @@ if(sysCallNum == 2) then
 	else			//if a free PER_PROC_TAB_ENTRY is found
 		fileDesc = i;	//index of the fee PER_PROC_TAB entry will be the new fileDESC
 
-		multipush(R0, R1, R2, R3, R5, R6, R7, R8, R9, R10, R11, R12);
+		multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
 		R1 = OPEN;
 		R2 = fileName;
 		call MOD_3;		//calling OPEN function of file_AMANGER module
-		multipop(R1, R2, R3, R5, R6, R7, R8, R9, R10, R11, R12);
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
 		R10 = R0;		//OPEN_FILE_TAB index is stored in R10
 		multipop(R0);
 
@@ -132,8 +134,111 @@ if(sysCallNum == 3) then
 	endif;
 endif;
 
+
+
+
+
+
+
+// *****syscall 3 for Seek*****
+if(sysCallNum == 6) then
+	alias offset R7;
+	alias inode_table_index R9;
+
+	[curr_process_table + 9] = 6;
+	fileDesc = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+	offset = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+	if(fileDesc < 0 || fileDesc > 7) then	//if fileDesc is invalid
+		[ret_addr]  = -1;
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+
+		ireturn;	
+	endif;
+
+	if([curr_UAP_num*512 + 496 + 2*fileDesc + 0] != FILE) then	//if given desc doen't coreesond to a file
+		[ret_addr]  = -1;
+		[curr_process_table + 9] = 0;
+		SP = [curr_process_table + 13];
+
+		ireturn;	
+	endif;
+
+	open_file_table_index = [curr_UAP_num*512 + 496 + 2*fileDesc + 1];
+	inode_table_index = [OPEN_FILE_TABLE + 4*open_file_table_index + 0];
+
+	multipush (R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+		R3 = currPID;
+		R1 = ACQUIRE_INODE;
+		R2 = inode_table_index;
+		call MOD_0;
+	multipop (R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+		tmp = R0;
+	multipop(R0);
+
+	if(tmp == -1) then	//if locking INODE fails
+		[ret_addr] = -1;
+
+		[curr_process_table + 9] = 0;           //setting MODE FLAG to 0 before return to user mode
+		SP = [curr_process_table + 13];         //restoring SP to USER STACK
+		ireturn;
+	endif;
+
+	lseek_addr = OPEN_FILE_TABLE + 4*open_file_table_index + 2;
+
+	if(([lseek_addr] + offset) < 0) then	//if given offset takes lseek to <0
+
+		backup;
+		R3 = currPID;
+		R1 = RELEASE_INODE;		//relese inode
+		R2 = inode_table_index;
+		call MOD_0;
+		restore;
+
+		[ret_addr] = -2;
+
+		[curr_process_table + 9] = 0;           //setting MODE FLAG to 0 before return to user mode
+		SP = [curr_process_table + 13];         //restoring SP to USER STACK
+		ireturn;
+	endif;
+
+
+	//tmp from here will comtain FILE_SIZE
+	if(inode_table_index == INODE_ROOT) then	//tmp contains FILE_SIZE
+		tmp = 480;				//file size of ROOT is 480(but in inode tab hows 512 ??)
+	else
+		tmp = [INODE_TABLE + 16*inode_table_index + 2];	//file size form inode tab if file is not root
+	endif;
+
+	if(offset == 0) then
+		[lseek_addr] = 0;
+	else
+		if(([lseek_addr]+offset) > tmp) then
+			[lseek_addr] = tmp;
+		else
+			[lseek_addr] = [lseek_addr] + offset;
+		endif;
+	endif;
+
+	backup;
+	R3 = currPID;
+	R1 = RELEASE_INODE;		//release inode
+	R2 = inode_table_index;
+	call MOD_0;
+	restore;
+
+	[ret_addr] = 0;		//returning 0 for success
+
+	[curr_process_table + 9] = 0;           //setting MODE FLAG to 0 before return to user mode
+	SP = [curr_process_table + 13];         //restoring SP to USER STACK
+	ireturn;
+endif;
+
+
+
 //--------------------------DONE STARTING SYSCALL SPECIFIC IMPLEMENTATION----------------------------
 
-[curr_process_table + 9] = 0;
-SP = [curr_process_table + 13];
-ireturn;
+//[curr_process_table + 9] = 0;
+//SP = [curr_process_table + 13];
+//ireturn;

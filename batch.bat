@@ -37,6 +37,14 @@ load --exec $HOME/myexpos/expl/samples/filcrt.xsm
 load --exec $HOME/myexpos/expl/samples/fildlt.xsm
 load --exec $HOME/myexpos/expl/samples/rdprnfl.xsm
 load --exec $HOME/myexpos/expl/samples/rdpnflcn.xsm
+load --exec $HOME/myexpos/expl/samples/s_25_a_1.xsm
+load --exec $HOME/myexpos/expl/samples/s_25_a_2.xsm
+load --exec $HOME/myexpos/expl/samples/prevodcn.xsm
+load --exec $HOME/myexpos/expl/samples/nummrgcn.xsm
+load --exec $HOME/myexpos/expl/samples/ls.xsm
+load --exec $HOME/myexpos/expl/samples/rm.xsm
+load --exec $HOME/myexpos/expl/samples/cp.xsm
+load --exec $HOME/myexpos/expl/samples/cat.xsm
 load --init $HOME/myexpos/expl/samples/shell_2.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --library $HOME/myexpos/expl/library.lib

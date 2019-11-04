@@ -138,7 +138,7 @@ multipop (R0);
 
 
 //------------------copying PER_PROCESS_RESOURCE_TABLE from parent to CHILD----------------------
-breakpoint;
+//breakpoint;
 i = 496;
 while(i < 511) do
 	tmp = [curr_process_table + 11]*512 + i;

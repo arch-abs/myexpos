@@ -1,0 +1,64 @@
+//>>>>>!!!!!NOTE!!!!!<<<<<
+//ONE assumption here ids that new file created has OPEN access permisiion.
+//A better implementation wud open root file top get permission of src fil and create new fil with same permission
+
+
+
+
+
+
+int main(){
+
+decl
+	int tmp, ret, fd1, fd2;
+	str fn1, fn2, data;
+enddecl
+
+begin
+
+	write("SRCFLNM>?");
+	ret = exposcall("Read", -1, fn1);
+
+	ret = exposcall("Create", fn1, 1);
+
+	if(ret == 0) then
+
+		fd1 = exposcall("Open", fn1);
+
+		if(fd1 >= 0 AND  fd1<=7) then
+breakpoint;							//dbg
+			ret = exposcall("Read", -1, data);
+
+breakpoint;							//dbg
+
+			ret = exposcall("Write", fd1, data);
+breakpoint;							//dbg
+	
+
+			ret = exposcall("Read", -1, data);
+breakpoint;							//dbg
+
+
+			ret = exposcall("Write", fd1, data);
+breakpoint;							//dbg
+
+
+
+
+			ret = exposcall("Close", fd1);
+
+		else
+
+			write("ER_fl1_OPN");
+
+		endif;
+
+	else
+		write("ERcrtFIL");
+
+	endif;
+
+return 0;
+end
+
+}

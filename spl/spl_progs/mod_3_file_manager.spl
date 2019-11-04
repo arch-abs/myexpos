@@ -209,3 +209,71 @@ if(functionNum == BUFFERED_READ) then
 
 	return;
 endif;
+
+
+
+
+
+
+//----------------------BUFFERED_WRITE-----------------------
+if(functionNum == BUFFERED_WRITE) then
+
+breakpoint;		//dbg
+
+	alias disk_block_num R2;
+	alias offset R3;
+	alias word R4;
+	alias buffer_num R5;
+	alias buffer_table_entry R6;
+
+
+	buffer_num = disk_block_num % 4;
+	buffer_table_entry = BUFFER_TABLE + 4*buffer_num;
+
+	backup;
+		R1 = ACQUIRE_BUFFER;
+		R2 = buffer_num;	//passinfg BUFFER_NUMBER
+		R3 = [SYSTEM_STATUS_TABLE + 1];	//PID
+		call MOD_0;		//calling Acquire_BUFFER fn
+	restore;
+
+	if([buffer_table_entry + 0] != disk_block_num) then
+		if([buffer_table_entry + 1] == 1) then
+
+			backup;
+			R1 = DISK_STORE;
+			R2 = [SYSTEM_STATUS_TABLE + 1];
+			R3 = (BUFFER/512) + buffer_num;		//PAGE NUM (from BUFFER PAGE)
+			R4 = [buffer_table_entry + 0];	//block num
+			call MOD_4;
+			restore;
+
+			[buffer_table_entry + 0] = -1;		//clear the buffer table entry
+			[buffer_table_entry + 1] = 0;		//>>>!!!CAUTION!!!<<< it is mentioned tht all fields should be -1 for a free entry but I'm doing here 0
+
+		endif;
+
+		backup;
+		R4 = disk_block_num;			//BLOCK NUM of block to be loaded
+		R1 = DISK_LOAD;
+		R2 = [SYSTEM_STATUS_TABLE + 1];
+		R3 = (BUFFER/512) + buffer_num;		//PAGE_NUM of the allocated BUFFER_PAGE
+		call MOD_4;				//calling DISK_LOAD fn
+		restore;		
+
+		[buffer_table_entry + 0] = disk_block_num;
+
+	endif;
+
+	[BUFFER + 512*buffer_num + offset] = word;	//writing the word
+	[buffer_table_entry + 1] = 1;		//marking the buffer as DIRTY
+
+	backup;
+		R1 = RELEASE_BUFFER;
+		R2 = buffer_num;	//passinfg BUFFER_NUMBER
+		R3 = [SYSTEM_STATUS_TABLE + 1];	//PID
+		call MOD_0;		//calling RELEASE_BUFFER fn
+	restore;
+
+	return;
+endif;
