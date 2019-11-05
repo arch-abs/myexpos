@@ -41,12 +41,15 @@ if(currPID != 2) then		//if logout not called from shell
 	ireturn;
 endif;
 
+breakpoint;			//dbg
 
 backup;
 	R2 = currPID;	//to kill all process except idle, login (and current proces(i.e. SHELL)
 	R1 = KILL_ALL;
 	call MOD_1;
 restore;
+
+breakpoint;			//dbg
 
 [curr_process_table + 4] = TERMINATED;		//setting state of shell process to TERMINATED
 
