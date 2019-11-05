@@ -1,0 +1,29 @@
+int main(){
+decl
+	int ret, tmp, x, a;
+	str username, password;
+enddecl
+
+begin
+	a = 1;
+	while(a==1) do
+
+		write("Usr_NM>?");
+		ret = exposcall("Read", -1, username);
+		write("PSWD>?");
+		ret = exposcall("Read", -1, password);
+
+		ret = exposcall("Login", username, password);
+
+		if(ret == -1) then
+			write("INVLDcred");
+		endif;
+
+		if(ret == -2) then
+			write("PRMdenid");
+		endif;
+
+	endwhile;
+return 0;
+end
+}

@@ -12,9 +12,12 @@ load --int=8 $HOME/myexpos/spl/spl_progs/int_8_fork_syscall_handler.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/int_9_exec_syscall_handler.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/int_10.xsm
 load --int=11 $HOME/myexpos/spl/spl_progs/int_11_wait_signal_getpid_getppid_syscall_handler.xsm
+load --int=12 $HOME/myexpos/spl/spl_progs/int_12_logout_syscall_handler.xsm
 load --int=13 $HOME/myexpos/spl/spl_progs/int_13_semget_semrelease_syscall_handler.xsm
 load --int=14 $HOME/myexpos/spl/spl_progs/int_14_semlock_semunlock_syscall_handler.xsm
 load --int=15 $HOME/myexpos/spl/spl_progs/int_15_shutdown_syscall_handler.xsm
+load --int=16 $HOME/myexpos/spl/spl_progs/int_16_newusr_remusr_setpwd_getuname_getuid_syscall_handler.xsm
+load --int=17 $HOME/myexpos/spl/spl_progs/int_17_login_syscall_handler.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/mod_0_resource_manager.xsm
 load --module 1 $HOME/myexpos/spl/spl_progs/mod_1_process_manager.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/mod_2_memory_manager.xsm
@@ -45,7 +48,10 @@ load --exec $HOME/myexpos/expl/samples/ls.xsm
 load --exec $HOME/myexpos/expl/samples/rm.xsm
 load --exec $HOME/myexpos/expl/samples/cp.xsm
 load --exec $HOME/myexpos/expl/samples/cat.xsm
-load --init $HOME/myexpos/expl/samples/shell_2.xsm
+load --exec $HOME/myexpos/expl/samples/lu.xsm
+load --exec $HOME/myexpos/expl/samples/ru.xsm
+load --init $HOME/myexpos/expl/samples/login.xsm
+load --shell $HOME/myexpos/expl/samples/shell_3.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --data $HOME/myexpos/expl/samples/sample.dat

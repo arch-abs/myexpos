@@ -1,5 +1,5 @@
 alias i R1;
-
+alias tmp R2;
 
 
 //[SYSTEM_STATUS_TABLE + 1] = 1;
@@ -48,8 +48,12 @@ loadi(63, 13);
 loadi(64, 14);
 
 //loading init from disk to mem
-loadi(65, 7);
-loadi(66, 8);
+loadi(65, 7);		//loading only one code pae since samll prgram for efficient meme usage
+//loadi(66, 8);
+
+//loading shell from disk to mem
+loadi(67, 9);
+loadi(68, 10);
 
 //loading execp_handler to mem
 loadi(2, 15);
@@ -95,6 +99,10 @@ loadi(23, 36);
 loadi(24, 37);
 loadi(25, 38);
 
+//loading int_12_logout_syscall_handler
+loadi(26, 39);
+loadi(27, 40);
+
 //loading int_13_semget_semrelease_syscall_handler
 loadi(28, 41);
 loadi(29, 42);
@@ -107,7 +115,13 @@ loadi(31, 44);
 loadi(32, 45);
 loadi(33, 46);
 
+//loading int_16_newusr_remusr_setpwd_getuname_getuid_syscall_handler
+loadi(34, 47);
+loadi(35, 48);
 
+//loading int_17_login_syscall_handler
+loadi(36, 49);
+loadi(37, 50);
 
 
 
@@ -158,14 +172,14 @@ while(i <= 75) do
 i = i + 1;
 endwhile;
 
-i = 76;				//setting 76-82 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init etc.
-while(i <= 82) do
+i = 76;				//setting 76-80 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init etc.
+while(i <= 80) do
 	[MEMORY_FREE_LIST + i] = 1;
 i = i + 1;
 endwhile;
 
 
-i = 83;				//setting rest of user prog pages as 0 ie free
+i = 81;				//setting rest of user prog pages as 0 ie free
 while(i <= 127) do
 	[MEMORY_FREE_LIST + i] = 0;
 i = i + 1;
@@ -190,7 +204,7 @@ endwhile;
 //--------------INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT------------
 
 [SYSTEM_STATUS_TABLE + 3] = 0;		//initialize WAIT_MEM_COUNT
-[SYSTEM_STATUS_TABLE + 2] = (127 - 83 + 1);		//initialize MEM_FREE_COUNT to this since out of USER_PROGRAM pages 76-127 ..76-82 are used up for stack, heap, user area page etc of idle and intinit etc so effectively 83-127 available
+[SYSTEM_STATUS_TABLE + 2] = 47;		//initialize MEM_FREE_COUNT to this since out of USER_PROGRAM pages 76-127 ..76-82 are used up for stack, heap, user area page etc of idle and intinit etc so effectively 83-127 available
 
 //------------DONE INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT----------
 
@@ -205,8 +219,9 @@ endwhile;
 
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_SEM_COUNT) do
-	[SEMAPHORE_TABLE + 4*i + 0] = -1;
-	[SEMAPHORE_TABLE + 4*i + 1] = 0;
+	tmp = SEMAPHORE_TABLE + 4*i;
+	[tmp + 0] = -1;
+	[tmp + 1] = 0;
 i = i + 1;
 endwhile;
 
@@ -226,8 +241,9 @@ endwhile;
 
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_FILE_NUM) do
-	[FILE_STATUS_TABLE + 4*i + 0] = -1;
-	[FILE_STATUS_TABLE + 4*i + 1] = -1;
+	tmp = FILE_STATUS_TABLE + 4*i;
+	[tmp + 0] = -1;
+	[tmp + 1] = -1;
 i = i + 1;
 endwhile;
 
@@ -244,9 +260,10 @@ endwhile;
 
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_BUFFER) do
-	[BUFFER_TABLE + 4*i + 0] = -1;
-	[BUFFER_TABLE + 4*i + 1] = 0;
-	[BUFFER_TABLE + 4*i + 2] = -1;
+	tmp = BUFFER_TABLE + 4*i;
+	[tmp + 0] = -1;
+	[tmp + 1] = 0;
+	[tmp + 2] = -1;
 i = i + 1;
 endwhile;
 
@@ -263,8 +280,9 @@ endwhile;
 
 i=0;
 while(i < MAX_OPENFILE_NUM) do
-	[OPEN_FILE_TABLE + 4*i + 0] = -1;	//inode index to -1
-	[OPEN_FILE_TABLE + 4*i + 1] = 0;	//open_instance_count to 0
+	tmp = OPEN_FILE_TABLE + 4*i;
+	[tmp + 0] = -1;	//inode index to -1
+	[tmp + 1] = 0;	//open_instance_count to 0
 i = i + 1;
 endwhile;
 
@@ -278,21 +296,28 @@ endwhile;
 
 
 //--------------SETTING UNUSED PROCESS TABLE STATE AS TERMINATED--------------
-[PROCESS_TABLE + 16 + 4] = TERMINATED;
-[PROCESS_TABLE + 32 + 4] = TERMINATED;
-[PROCESS_TABLE + 48 + 4] = TERMINATED;
-[PROCESS_TABLE + 64 + 4] = TERMINATED;
-[PROCESS_TABLE + 80 + 4] = TERMINATED;
-[PROCESS_TABLE + 96 + 4] = TERMINATED;
-[PROCESS_TABLE + 112 + 4] = TERMINATED;
-[PROCESS_TABLE + 128 + 4] = TERMINATED;
-[PROCESS_TABLE + 144 + 4] = TERMINATED;
-[PROCESS_TABLE + 160 + 4] = TERMINATED;
-[PROCESS_TABLE + 176 + 4] = TERMINATED;
-[PROCESS_TABLE + 192 + 4] = TERMINATED;
-[PROCESS_TABLE + 208 + 4] = TERMINATED;
-[PROCESS_TABLE + 224 + 4] = TERMINATED;
-[PROCESS_TABLE + 240 + 4] = TERMINATED;
+//[PROCESS_TABLE + 16 + 4] = TERMINATED;
+//[PROCESS_TABLE + 32 + 4] = TERMINATED;
+//[PROCESS_TABLE + 48 + 4] = TERMINATED;
+//[PROCESS_TABLE + 64 + 4] = TERMINATED;
+//[PROCESS_TABLE + 80 + 4] = TERMINATED;
+//[PROCESS_TABLE + 96 + 4] = TERMINATED;
+//[PROCESS_TABLE + 112 + 4] = TERMINATED;
+//[PROCESS_TABLE + 128 + 4] = TERMINATED;
+//[PROCESS_TABLE + 144 + 4] = TERMINATED;
+//[PROCESS_TABLE + 160 + 4] = TERMINATED;
+//[PROCESS_TABLE + 176 + 4] = TERMINATED;
+//[PROCESS_TABLE + 192 + 4] = TERMINATED;
+//[PROCESS_TABLE + 208 + 4] = TERMINATED;
+//[PROCESS_TABLE + 224 + 4] = TERMINATED;
+//[PROCESS_TABLE + 240 + 4] = TERMINATED;
+
+
+i = 1;
+while(i < MAX_PROC_NUM) do
+	[PROCESS_TABLE + 16*i + 4] = TERMINATED;
+i = i + 1;
+endwhile;
 //----------------------DONE SETTING UP AS TERMINATED-------------------------
 
 
@@ -348,39 +373,50 @@ endwhile;
 PTBR = PAGE_TABLE_BASE + 20;
 PTLR = 10;
 
+i = 0;
+while(i < 20) do
+	[PTBR + i] = -1;
+	[PTBR + i + 1] = "0000";
+i = i + 2;
+endwhile;
+
+
 [PTBR+0] = 63;
 [PTBR+1] = "0100";
 [PTBR+2] = 64;
 [PTBR+3] = "0100";
 
-[PTBR+4] = "78";
-[PTBR+5] = "0110";
-[PTBR+6] = "79";
-[PTBR+7] = "0110";
+//[PTBR+4] = -1;
+//[PTBR+5] = "0000";
+//[PTBR+6] = -1;
+//[PTBR+7] = "0000";
 
 [PTBR+8] = 65;
 [PTBR+9] = "0100";
-[PTBR+10] = 66;
-[PTBR+11] = "0100";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
+//[PTBR+10] = -1;
+//[PTBR+11] = "0000";
+//[PTBR+12] = -1;
+//[PTBR+13] = "0000";
+//[PTBR+14] = -1;
+//[PTBR+15] = "0000";
 
-[PTBR+16] = 76;
+[PTBR+16] = 66;
 [PTBR+17] = "0110";
-[PTBR+18] = 77;
-[PTBR+19] = "0110";
+//[PTBR+18] = -1;
+//[PTBR+19] = "0000";
 
 //setting up process table for init
-[PROCESS_TABLE + 16 + 1] = 1;
-[PROCESS_TABLE + 16 + 3] = 1;	//setting USERID of init to ROOT (this is not final, (will change when we implement multiuser)
-[PROCESS_TABLE + 16 + 4] = CREATED;
-[PROCESS_TABLE + 16 + 11] = 80;
-[PROCESS_TABLE + 16 + 12] = 0;
-[PROCESS_TABLE + 16 + 13] = 8*512;
-[PROCESS_TABLE + 16 + 14] = PTBR;
-[PROCESS_TABLE + 16 + 15] = PTLR;
+
+tmp = PROCESS_TABLE + 16;
+
+[tmp + 1] = 1;
+[tmp + 3] = 1;	//setting USERID of init to ROOT (this is not final, (will change when we implement multiuser)
+[tmp + 4] = CREATED;
+[tmp + 11] = 77;
+[tmp + 12] = 0;
+[tmp + 13] = 8*512;
+[tmp + 14] = PTBR;
+[tmp + 15] = PTLR;
 
 
 //initializing PER_PROCESS_RESOURCE_TAB of INIT
@@ -391,23 +427,115 @@ i = i + 2;
 endwhile;
 
 
-//intializing DISK_MAP_TABLE for INIT
-i = 0;
-while(i < 10) do
-	[DISK_MAP_TABLE + 10 + i] = -1;
-i = i + 1;
-endwhile;
-[DISK_MAP_TABLE + 10 + 4] = 7;
-[DISK_MAP_TABLE + 10 + 5] = 8;
+////intializing DISK_MAP_TABLE for INIT
+//i = 0;
+//while(i < 10) do
+//	[DISK_MAP_TABLE + 10 + i] = -1;
+//i = i + 1;
+//endwhile;
+//[DISK_MAP_TABLE + 10 + 4] = 7;
+//[DISK_MAP_TABLE + 10 + 5] = 8;
 
 
-[76*512] = [65*512 + 1];
+[66*512] = [65*512 + 1];
 
 //SP = 8*512;
 //PTBR = PAGE_TABLE_BASE + 20;
 //PTLR = 10;
 //ireturn;
 //-------------------------DONE INIT loading and setup-------------------------
+
+
+
+
+
+//-------------------------SHELL loading and setup-------------------------
+PTBR = PAGE_TABLE_BASE + 40;
+PTLR = 10;
+
+
+i = 0;
+while(i < 20) do
+	[PTBR + i] = -1;
+	[PTBR + i + 1] = "0000";
+i = i + 2;
+endwhile;
+
+
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+//[PTBR+4] = -1;
+//[PTBR+5] = "0000";
+//[PTBR+6] = -1;
+//[PTBR+7] = "0000";
+
+[PTBR+8] = 67;
+[PTBR+9] = "0100";
+[PTBR+10] = 68;
+[PTBR+11] = "0100";
+//[PTBR+12] = -1;
+//[PTBR+13] = "0000";
+//[PTBR+14] = -1;
+//[PTBR+15] = "0000";
+
+[PTBR+16] = 78;
+[PTBR+17] = "0110";
+[PTBR+18] = 79;
+[PTBR+19] = "0110";
+
+//setting up process table for Shell
+
+tmp = PROCESS_TABLE + 32;
+
+[tmp + 1] = 2;	//PID 2
+[tmp + 2] = 1;	//PPID 1(parent od login(init))
+[tmp + 3] = 1;	//setting USERID of init to ROOT (this is not final, (will change when we implement multiuser)
+[tmp + 4] = TERMINATED;
+[tmp + 11] = 80;
+[tmp + 12] = 0;
+[tmp + 13] = 8*512;
+[tmp + 14] = PTBR;
+[tmp + 15] = PTLR;
+
+
+//initializing PER_PROCESS_RESOURCE_TAB of SHELL
+i = 496;
+while(i < 512) do
+	[40960 + i] = -1;	//40960 = 80*512 (80 is UAP)
+i = i + 2;
+endwhile;
+
+
+//intializing DISK_MAP_TABLE for SHELL
+i = 0;
+while(i < 10) do
+	[DISK_MAP_TABLE + 20 + i] = -1;
+i = i + 1;
+endwhile;
+[DISK_MAP_TABLE + 20 + 4] = 9;
+[DISK_MAP_TABLE + 20 + 5] = 10;
+
+
+[78*512] = [67*512 + 1];
+
+//SP = 8*512;
+//PTBR = PAGE_TABLE_BASE + 20;
+//PTLR = 10;
+//ireturn;
+//-------------------------DONE SHELL loading and setup-------------------------
+
+
+
+
+
+
+
+
+
+
 
 
 

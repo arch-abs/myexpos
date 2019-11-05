@@ -18,13 +18,8 @@ SP = [curr_process_table + 11]*512 - 1;
 
 
 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< 
-//>>>>>>!!!!CAUTION!!!!<<<<<<< CHANGE THE PID OF SHLL TO 2 in IF CONDITON after stage 26
-if([curr_process_table + 1] != 1 || [curr_process_table + 3] != 1) then	//if user is NOT ROOT or if the process trying to execute SHUTDOWN SYSCALL is NOT SHELL
+
+if([curr_process_table + 1] != 2 || [curr_process_table + 3] != 1) then	//if user is NOT ROOT or if the process trying to execute SHUTDOWN SYSCALL is NOT SHELL
 	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = -1;
 
 	[curr_process_table + 9] = 0;

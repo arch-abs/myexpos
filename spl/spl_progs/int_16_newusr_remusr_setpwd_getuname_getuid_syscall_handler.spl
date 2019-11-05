@@ -1,0 +1,311 @@
+alias userSP R0;
+alias currPID R1;
+alias curr_process_table R2;
+
+alias tmp R3;
+
+alias sysCallNum R5;
+alias i R6;
+alias named_local_1 R7;
+alias named_local_2 R8;
+alias ret_addr R9;
+alias curr_process_mode_flag_addr R10; 
+
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+
+
+curr_process_mode_flag_addr = curr_process_table + 9;
+
+sysCallNum = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+named_local_1 = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+named_local_2 = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+
+
+//---------------------------STARTING SYSCALL SPECCIFIC IMPLEMENTATION---------------------------
+
+// *****syscallnum 22 for newusr*****
+if(sysCallNum == 22) then
+	alias username R7;
+	alias password R8;
+
+	[curr_process_mode_flag_addr] = 22;
+
+	if([SYSTEM_STATUS_TABLE + 0] != 1  ||  currPID != 2) then //if current user is not ROOT or current process is not SHELL
+		[ret_addr] = -2;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP; 
+		ireturn;
+	endif;
+
+	encrypt password;
+
+	i = 0;		//checking if the given user already exists
+	while(i < MAX_USER_NUM)	do
+		if([USER_TABLE + 2*i + 0] == username) then
+			[ret_addr] = -1;
+
+			[curr_process_mode_flag_addr] = 0;
+			SP = userSP;
+			ireturn;
+		endif;
+	i = i + 1;
+	endwhile;
+
+
+	i = 2;		//finding a free entry in USER_TAB
+	while(i < MAX_USER_NUM) do
+		if([USER_TABLE + 2*i + 0] == -1) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	if(i == MAX_USER_NUM) then	//if no free entry in USER_TABLE
+		[ret_addr] = -3;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	[USER_TABLE + 2*i + 0] = username;
+	[USER_TABLE + 2*i + 1] = password;
+
+
+	[ret_addr] = 0;
+
+	[curr_process_mode_flag_addr] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+
+
+
+
+
+
+
+// *****syscallnum 23 for remusr*****
+if(sysCallNum == 23) then
+	alias username R7;
+
+	[curr_process_mode_flag_addr] = 23;
+
+	if([SYSTEM_STATUS_TABLE + 0] != 1  ||  currPID != 2) then //if current user is not ROOT or current process is not SHELL
+		[ret_addr] = -2;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	if(username == "root"  ||  username == "kernel") then	//if the user to be removed is ROOT or KERNEL
+		[ret_addr] = -2;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;	
+
+	i=0;
+	while(i < MAX_USER_NUM) do
+		if([USER_TABLE + 2*i + 0] == username) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+
+	if(i == MAX_USER_NUM) then		//if no user present with the given username t0 delete
+		[ret_addr] = -1;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+	tmp = i;
+
+
+	i = 0;
+	while(i < MAX_FILE_NUM) do	//checking if any files predent for current user if so can't rem usr
+		if([ROOT_FILE + 8*i + 0] != -1  &&  [ROOT_FILE + 8*i + 3] == username) then
+			[ret_addr] = -3;
+
+			[curr_process_mode_flag_addr] = 0;
+			SP = userSP;
+			ireturn;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	[USER_TABLE + 2*tmp + 0] = -1;	//invalidating USER_TABLE entry
+	[USER_TABLE + 2*tmp + 1] = -1;
+
+
+	[ret_addr] = 0;
+
+	[curr_process_mode_flag_addr] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+
+
+
+
+
+
+// *****syscallnum 24 for setpwd*****
+if(sysCallNum == 24) then
+	alias username R7;
+	alias new_password R8;
+
+	[curr_process_mode_flag_addr] = 24;
+
+	if(currPID != 2) then //if current process is not SHELL
+		[ret_addr] = -1;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	encrypt new_password;
+
+
+	i=1;
+	while(i < MAX_USER_NUM) do
+		if([USER_TABLE + 2*i + 0] == username) then
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	if(i == MAX_USER_NUM) then		//if no user present with the given username to chng_PWD
+		[ret_addr] = -2;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	if([curr_process_table + 3] != i  &&  [curr_process_table + 3] != 1) then
+		[ret_addr] = -1;	//if curr_usr is not the usr who's pswd is to change or ROOT usr
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	[USER_TABLE + 2*i + 1] = new_password;	//setting new password in appropriate entry
+
+	[ret_addr] = 0;
+
+	[curr_process_mode_flag_addr] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+
+
+
+
+
+
+// *****syscallnum 25 for getuname*****
+if(sysCallNum == 25) then
+	alias userid R7;
+
+	[curr_process_mode_flag_addr] = 25;
+
+
+	if(userid < 0  ||  userid > 15) then
+
+		[ret_addr] = -1;	//if incalid userid passed
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+
+	endif;
+
+	if([USER_TABLE + 2*userid + 0] == -1) then	//if table entry corresponding to given userid is -1
+
+		[ret_addr] = -1;
+
+		[curr_process_mode_flag_addr] = 0;
+		SP = userSP;
+		ireturn;
+
+	endif;
+
+
+
+	[ret_addr] = [USER_TABLE + 2*userid + 0];	//returning required user name
+
+	[curr_process_mode_flag_addr] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+
+
+
+
+
+
+// *****syscallnum 26 for getuid*****
+if(sysCallNum == 26) then
+	alias username R7;
+
+	[curr_process_mode_flag_addr] = 26;
+
+
+	i=0;
+	while(i < MAX_USER_NUM) do
+		if([USER_TABLE + 2*i + 0] == username) then
+
+			[ret_addr] = i;	//if curr_usr is not the usr who's pswd is to change or ROOT usr
+
+			[curr_process_mode_flag_addr] = 0;
+			SP = userSP;
+			ireturn;
+
+			break;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	[ret_addr] = -1;	//if couldn't find an entry corresponding to given username
+
+	[curr_process_mode_flag_addr] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+
+//------------------------DONE STARTING SYSCALL SPECCIFIC IMPLEMENTATION-------------------------
+
+
+
+//[curr_process_table + 9] = 0;
+//SP = [curr_process_table + 13];
+//ireturn;
+

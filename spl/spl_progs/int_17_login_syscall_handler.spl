@@ -1,0 +1,89 @@
+alias userSP R0;	//will be common for both PAR nad CHILD
+alias currPID R1;	//currPID is same as PARENT_PID
+alias curr_process_table R2;	//parent_process_table is same as curr_process_table
+
+alias tmp R3;
+
+alias i R6;
+alias ret_addr R7;	 //ind will bw same as CHILD_PID
+alias username R8;
+alias password R9;
+alias userid R10;
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+[curr_process_table + 9] = 27;
+
+
+username = [[PTBR + 2*((userSP-4)/512)]*512 + ((userSP-4)%512)];
+password = [[PTBR + 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512);
+
+
+
+if(currPID != 1) then		//if login SYSCALL  not called by LOGIN PROCESS (PID 1)
+	[ret_addr] = -2;
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+userid = 1;	//not starting from 0 since KERNEL can never login
+while(userid < MAX_USER_NUM) do
+	if([USER_TABLE + 2*userid + 0] == username) then
+		break;
+	endif;
+userid = userid + 1;
+endwhile;
+
+
+if(userid == 16) then	//if no user with given usrname was found
+	[ret_addr] = -1;
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+encrypt password;
+
+
+if([USER_TABLE + 2*userid + 1] != password) then	//if password in USERTABLE does not match encryptedpassword supplied
+	[ret_addr] = -1;
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+[PROCESS_TABLE + 16*2 + 4] = CREATED;	//setting state of SHELL to CREATED
+[PROCESS_TABLE + 16*2 + 3] = userid;	//setting userid in shell to currently loggedin user
+
+
+[curr_process_table + 4] = WAIT_PROCESS;	//setting login syscall to wait until shell exits(using logout)
+[curr_process_table + 5] = 2;
+
+
+[SYSTEM_STATUS_TABLE + 0] = userid;
+
+backup;
+call MOD_5;	//calling SCHEDULER
+restore;
+
+
+
+[ret_addr] = 0;
+
+[curr_process_table + 9] = 0;
+SP = [curr_process_table + 13];
+ireturn;

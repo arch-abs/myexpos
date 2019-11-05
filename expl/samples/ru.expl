@@ -1,0 +1,44 @@
+//>>>!!!NOTE!!!<<< this can be impoved further by printing status whetther for each file belonging to the given user the DELETE was SUCCESSFUL or NOT
+
+
+
+
+int main(){
+
+decl
+	int ret, fileDesc, x;
+	str username, filename, fileusername;
+enddecl
+
+begin
+
+	write("usrNAME>?");
+
+	ret = exposcall("Read", -1, username);
+
+	fileDesc = exposcall("Open", "root");
+
+	if(fileDesc >= 0  AND  fileDesc<=7) then
+		ret = exposcall("Seek", fileDesc, 0);
+		ret = exposcall("Read", fileDesc, filename);
+
+		while(ret == 0) do
+			ret = exposcall("Seek", fileDesc, 2);
+			ret = exposcall("Read", fileDesc, fileusername);
+
+			if(filename != "-1"  AND  fileusername == username) then
+				ret = exposcall("Delete", filename);
+			endif;
+
+			ret=  exposcall("Seek", fileDesc, 4);
+			ret = exposcall("Read", fileDesc, filename);
+		endwhile;
+		ret = exposcall("Close", fileDesc);
+	else
+		write("EropnROTfl");
+	endif;
+
+return 0;
+end
+
+}

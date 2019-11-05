@@ -1,0 +1,75 @@
+alias userSP R0;	//will be common for both PAR nad CHILD
+alias currPID R1;	//currPID is same as PARENT_PID
+alias curr_process_table R2;	//parent_process_table is same as curr_process_table
+
+alias tmp R3;
+
+alias i R6;
+alias ret_addr R7;	 //ind will bw same as CHILD_PID
+
+//alias username R8;
+//alias password R9;
+
+//alias userid R10;
+
+
+
+
+
+
+
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_process_table = PROCESS_TABLE + currPID*16;
+
+
+userSP = SP;
+[curr_process_table + 13] = SP;
+SP = [curr_process_table + 11]*512 - 1;
+[curr_process_table + 9] = 28;
+
+
+ret_addr = [PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512);
+
+
+
+if(currPID != 2) then		//if logout not called from shell
+	[ret_addr] = -1;
+
+	[curr_process_table + 9] = 0;
+	SP = [curr_process_table + 13];
+	ireturn;
+endif;
+
+
+backup;
+	R2 = currPID;	//to kill all process except idle, login (and current proces(i.e. SHELL)
+	R1 = KILL_ALL;
+	call MOD_1;
+restore;
+
+[curr_process_table + 4] = TERMINATED;		//setting state of shell process to TERMINATED
+
+[[PTBR + 2*8]*512 + 0] = [[PTBR + 2*4]*512 + 1];	//>>>!!IMP!!<<< extracting entry point into  shell from header present i it's first code page and putting that value at thne first word in user stack
+[curr_process_table + 13] = 8*512;			//>>>!!IMP!!<<< updating usrSP value in the per_proc_tab of shell to beging of 8th logical page;
+
+
+[PROCESS_TABLE + 16*1 + 4] = READY;		//waking up login process whic was till noe waitin for SHELL
+
+
+[SYSTEM_STATUS_TABLE + 0] = 0;			//set userid in sys_stat_tab to 0 (for kernel)
+
+
+backup;
+call MOD_5;			//calling scheduler
+restore;			//NOTE now the next process scheduled will be LOGIN
+				//since all other processes are in TERMINATED
+
+
+
+
+//[ret_addr] = 0;
+
+//[curr_process_table + 9] = 0;
+//SP = [curr_process_table + 13];
+//ireturn;
