@@ -1,13 +1,66 @@
 //breakpoint;	
 
-//alias currentPID R0;
-//alias process_table_entry R1;
+alias named_local_1 R0;
+alias named_local_2 R1;
 //alias newPID R2;
 //alias new_process_table R3;
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
 SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;	//NOTE OFFSET NOT ADDED SINCE WE ARE STARTING AGAIN SO KERNEL STACK EMPTY AND KPTR MIGHT BE GARBAGE FROM PREVIOUS CONTEXT SWITCH
 backup;
+
+
+
+
+
+//alias currPID R0;	//named local CHANGED HERE
+//currPID = [SYSTEM_STATUS_TABLE + 1];
+
+if([SYSTEM_STATUS_TABLE + 5] != 0) then
+	if([SYSTEM_STATUS_TABLE + 1] == 15 && [SYSTEM_STATUS_TABLE + 5] == SWAP_OUT) then
+		backup;
+		R1 = SWAP_OUT;
+		R2 = [SYSTEM_STATUS_TABLE + 1];
+		call MOD_6;	//calling swapout of PAGER_MOD
+		restore;
+	else
+		if([SYSTEM_STATUS_TABLE + 1] == 15 && [SYSTEM_STATUS_TABLE + 5] == SWAP_IN) then
+			backup;
+			R1 = SWAP_IN;
+			R2 = [SYSTEM_STATUS_TABLE + 1];
+			call MOD_6;	//calling swapin of PAGER_MOD
+			restore;
+		endif;
+
+	endif;
+	
+	//>>>>>IMP<<<<NOTE :: if the above 2 conditions are false the that means that SWAPPING is ON but IDLEhas been scheduled currently because SWAPR DAEMON has been blocked
+
+else
+	if([SYSTEM_STATUS_TABLE + 3] < MEM_LOW) then	//if MEM_FRE_CNT < MEM_LOW
+		[SYSTEM_STATUS_TABLE + 5] = SWAP_OUT;
+	else
+		if([SYSTEM_STATUS_TABLE + 4] != 0) then	//if some process are swapped out(cjecking swapped count)
+
+			alias i R1;
+			i = 3;			//checking if ANY PROCESS > MAX TICK (excluding idle, init, shell and swapper daemon )
+			while(i < 15) do
+				if([PROCESS_TABLE + i*16 + 4] != TERMINATED && [PROCESS_TABLE + i*16 + 6] == 1 && [PROCESS_TABLE + i*16 + 0] > MAX_TICK) then //if iht process if swapped the SWAP_FLAG will be set and if TICK > MAX_TICK
+					break;
+				endif;
+			i = i + 1;
+			endwhile;
+
+			if(i != 15  || [SYSTEM_STATUS_TABLE + 3] > MEM_HIGH) then	//if some swapped out process TICK > MXA_TIVK or MEM_FRE_CNT > MEM_HIGH
+				[SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
+			endif;
+		endif;
+	endif;
+endif;
+
+
+
+
 
 //currentPID = [SYSTEM_STATUS_TABLE + 1];
 //process_table_entry = PROCESS_TABLE + currentPID*16;
@@ -17,9 +70,9 @@ backup;
 //[process_table_entry + 15] = PTLR;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = READY;
 
-alias counter R0;		//implementing tick
-counter = 0;
-while(counter < 16) do
+alias counter R1;		//implementing tick (CAUTION!!! notice we are leavning out IDLE, LOGIN, SHELL, DAEMON_PROCESS )
+counter = 3;
+while(counter < 15) do
 	if([PROCESS_TABLE + 16*counter + 4] != TERMINATED) then
 		[PROCESS_TABLE + 16*counter + 0] = [PROCESS_TABLE + 16*counter + 0] + 1; 
 	endif;

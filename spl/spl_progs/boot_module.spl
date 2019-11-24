@@ -1,7 +1,6 @@
 alias i R1;
 alias tmp R2;
 
-
 //[SYSTEM_STATUS_TABLE + 1] = 1;
 
 //loading idle code from disk to mem
@@ -130,10 +129,6 @@ loadi(37, 50);
 
 //boot module loaded in os_startup
 
-//load mod_5 SCHEDULER
-loadi(50, 63);
-loadi(51, 64);
-
 //load mod_0 RESOURCE_MANAGER
 loadi(40, 53);
 loadi(41, 54);
@@ -154,6 +149,15 @@ loadi(47, 60);
 loadi(48, 61);
 loadi(49, 62);	
 
+//load mod_5 SCHEDULER
+loadi(50, 63);
+loadi(51, 64);
+
+//load mod_6 PAGER
+loadi(52, 65);
+loadi(53, 66);
+
+
 //----------------------DONE MODULE LOADING-----------------------------
 
 
@@ -172,14 +176,14 @@ while(i <= 75) do
 i = i + 1;
 endwhile;
 
-i = 76;				//setting 76-80 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init etc.
-while(i <= 80) do
+i = 76;				//setting 76-82 user prog pages as 1 since allocated to heap, stack , user area page etc of idle, init, daemon etc.
+while(i <= 82) do
 	[MEMORY_FREE_LIST + i] = 1;
 i = i + 1;
 endwhile;
 
 
-i = 81;				//setting rest of user prog pages as 0 ie free
+i = 83;				//setting rest of user prog pages as 0 ie free
 while(i <= 127) do
 	[MEMORY_FREE_LIST + i] = 0;
 i = i + 1;
@@ -201,10 +205,13 @@ endwhile;
 
 
 
-//--------------INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT------------
+//--------------INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT, SWAP_COUNT, PAGING_STATUS------------
 
 [SYSTEM_STATUS_TABLE + 3] = 0;		//initialize WAIT_MEM_COUNT
-[SYSTEM_STATUS_TABLE + 2] = 47;		//initialize MEM_FREE_COUNT to this since out of USER_PROGRAM pages 76-127 ..76-82 are used up for stack, heap, user area page etc of idle and intinit etc so effectively 83-127 available
+[SYSTEM_STATUS_TABLE + 2] = 45;		//initialize MEM_FREE_COUNT to this since out of USER_PROGRAM pages 76-127 ..76-82 are used up for stack, heap, user area page etc of idle and intinit etc so effectively 83-127 available
+
+[SYSTEM_STATUS_TABLE + 4] = 0;		//initialize SWAP_COUNT
+[SYSTEM_STATUS_TABLE + 5] = 0;		//initialize PAGING_STATUS
 
 //------------DONE INTITIALIZE WAIT_MEM_COUNT & MEM_FREE_COUNT----------
 
@@ -220,7 +227,7 @@ endwhile;
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_SEM_COUNT) do
 	tmp = SEMAPHORE_TABLE + 4*i;
-	[tmp + 0] = -1;
+	[tmp] = -1;
 	[tmp + 1] = 0;
 i = i + 1;
 endwhile;
@@ -242,7 +249,7 @@ endwhile;
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_FILE_NUM) do
 	tmp = FILE_STATUS_TABLE + 4*i;
-	[tmp + 0] = -1;
+	[tmp] = -1;
 	[tmp + 1] = -1;
 i = i + 1;
 endwhile;
@@ -261,7 +268,7 @@ endwhile;
 i = 0;				//setting all non user program pages to 1
 while(i < MAX_BUFFER) do
 	tmp = BUFFER_TABLE + 4*i;
-	[tmp + 0] = -1;
+	[tmp] = -1;
 	[tmp + 1] = 0;
 	[tmp + 2] = -1;
 i = i + 1;
@@ -281,7 +288,7 @@ endwhile;
 i=0;
 while(i < MAX_OPENFILE_NUM) do
 	tmp = OPEN_FILE_TABLE + 4*i;
-	[tmp + 0] = -1;	//inode index to -1
+	[tmp] = -1;	//inode index to -1
 	[tmp + 1] = 0;	//open_instance_count to 0
 i = i + 1;
 endwhile;
@@ -295,7 +302,7 @@ endwhile;
 
 
 
-//--------------SETTING UNUSED PROCESS TABLE STATE AS TERMINATED--------------
+//--------------SETTING UNUSED PROCESS TABLE STATE AS TERMINATED and TICK 0--------------
 //[PROCESS_TABLE + 16 + 4] = TERMINATED;
 //[PROCESS_TABLE + 32 + 4] = TERMINATED;
 //[PROCESS_TABLE + 48 + 4] = TERMINATED;
@@ -315,10 +322,12 @@ endwhile;
 
 i = 1;
 while(i < MAX_PROC_NUM) do
-	[PROCESS_TABLE + 16*i + 4] = TERMINATED;
+	tmp = PROCESS_TABLE + 16*i;
+	[tmp] = 0;		//setting TICK to 0 for all processes
+	[tmp + 4] = TERMINATED;
 i = i + 1;
 endwhile;
-//----------------------DONE SETTING UP AS TERMINATED-------------------------
+//----------------------DONE SETTING UP AS TERMINATED and TICK 0-------------------------
 
 
 
@@ -422,7 +431,8 @@ tmp = PROCESS_TABLE + 16;
 //initializing PER_PROCESS_RESOURCE_TAB of INIT
 i = 496;
 while(i < 512) do
-	[[PROCESS_TABLE + 16 + 11]*512 + i] = -1;
+	[[PROCESS_TABLE + 27]*512 + i] = -1;	//[[PROCESS_TABLE + 16 + 11]*512 + i] = -1;
+
 i = i + 2;
 endwhile;
 
@@ -496,7 +506,7 @@ tmp = PROCESS_TABLE + 32;
 [tmp + 4] = TERMINATED;
 [tmp + 11] = 80;
 [tmp + 12] = 0;
-[tmp + 13] = 8*512;
+[tmp + 13] = 4096;
 [tmp + 14] = PTBR;
 [tmp + 15] = PTLR;
 
@@ -515,11 +525,11 @@ while(i < 10) do
 	[DISK_MAP_TABLE + 20 + i] = -1;
 i = i + 1;
 endwhile;
-[DISK_MAP_TABLE + 20 + 4] = 9;
-[DISK_MAP_TABLE + 20 + 5] = 10;
+[DISK_MAP_TABLE + 24] = 9;	//20 + 4
+[DISK_MAP_TABLE + 25] = 10;	//20 + 5
 
 
-[78*512] = [67*512 + 1];
+[39936] = [34305];	//[78*512] = [67*512 + 1];
 
 //SP = 8*512;
 //PTBR = PAGE_TABLE_BASE + 20;

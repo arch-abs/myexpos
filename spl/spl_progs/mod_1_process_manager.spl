@@ -197,9 +197,9 @@ if(functionNum == KILL_ALL) then
 	//>>>>!!!!CAUTION!!!!<<<<
 	//>>>>!!!!caution!!!!<<<<
 
-	i = 2;	//calling EXIT_PROCESS for all process except DAEMON(pid 15), curr_process, idle and init
-	while(i <  MAX_PROC_NUM) do
-
+	i = 3;	//calling EXIT_PROCESS for all process except DAEMON(pid 15), curr_process, idle and init(login), shell
+	while(i <  (MAX_PROC_NUM-1)) do		//DAEMON taken care of in (MAX_PROC_NUM-1)
+					
 		//if((i != 15) && ([PROCESS_TABLE + 16*i + 4] != TERMINATED) && (i != PID)) then
 
 		if(([PROCESS_TABLE + 16*i + 4] != TERMINATED) && (i != PID)) then

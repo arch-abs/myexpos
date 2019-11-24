@@ -1,3 +1,5 @@
+alias named_local R1;
+
 [SYSTEM_STATUS_TABLE + 1] = 0;
 
 //loading MOD_7 from disk to mem
@@ -37,6 +39,58 @@ call BOOT_MODULE;
 //loadi(2, 15);
 //loadi(3, 16);
 
+
+
+
+//setting up page table for DAEMON_PROCESS(PID 15)
+PTBR = PAGE_TABLE_BASE + 15*20;
+PTLR = 10;
+
+[PTBR+0] = -1;
+[PTBR+1] = "0000";
+[PTBR+2] = -1;
+[PTBR+3] = "0000";
+
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
+
+[PTBR+8] = 69;
+[PTBR+9] = "0100";
+[PTBR+10] = -1;
+[PTBR+11] = "0000";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+[PTBR+16] = 81;
+[PTBR+17] = "0110";
+[PTBR+18] = -1;
+[PTBR+19] = "0000";
+
+[81*512] = [69*512 + 1];
+
+//setting up process table for SWAPPER
+alias swapper_page_table R1;
+swapper_page_table = PROCESS_TABLE + 16*15;
+[swapper_page_table + 0] = 0;
+[swapper_page_table + 1] = 15;
+[swapper_page_table + 3] = 0;
+[swapper_page_table + 4] = CREATED;
+[swapper_page_table + 11] = 82;
+[swapper_page_table + 12] = 0;
+[swapper_page_table + 13] = 8*512;
+[swapper_page_table + 14] = PTBR;
+[swapper_page_table + 15] = PTLR;
+
+
+
+
+
+
+
 //setting up page table for idle
 PTBR = PAGE_TABLE_BASE;
 PTLR = 10;
@@ -68,7 +122,10 @@ PTLR = 10;
 [70*512] = [69*512 + 1];
 
 //setting up process table for idle
+
+[PROCESS_TABLE + 0] = 0;	//TICK
 [PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 3] = 0;	//userID
 [PROCESS_TABLE + 4] = RUNNING;
 [PROCESS_TABLE + 11] = 76;
 [PROCESS_TABLE + 12] = 0;

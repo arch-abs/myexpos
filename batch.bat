@@ -24,12 +24,14 @@ load --module 2 $HOME/myexpos/spl/spl_progs/mod_2_memory_manager.xsm
 load --module 3 $HOME/myexpos/spl/spl_progs/mod_3_file_manager.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/mod_4_device_manager.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/mod_5_scheduler.xsm
+load --module 6 $HOME/myexpos/spl/spl_progs/mod_6_pager.xsm
 load --module 7 $HOME/myexpos/spl/spl_progs/boot_module.xsm
 load --exec $HOME/myexpos/expl/samples/bub_srt.xsm
 load --exec $HOME/myexpos/expl/samples/arth_ex.xsm
 load --exec $HOME/myexpos/expl/samples/od_num.xsm
 load --exec $HOME/myexpos/expl/samples/parevod.xsm
 load --exec $HOME/myexpos/expl/samples/3forks.xsm
+load --exec $HOME/myexpos/expl/samples/4forks.xsm
 load --exec $HOME/myexpos/expl/samples/redwrit.xsm
 load --exec $HOME/myexpos/expl/samples/pid.xsm
 load --exec $HOME/myexpos/expl/samples/parent.xsm

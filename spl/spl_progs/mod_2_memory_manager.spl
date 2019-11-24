@@ -153,3 +153,29 @@ if(funcNum == GET_FREE_BLOCK) then
 
 endif;
 
+
+
+
+
+
+
+//---------------------------------GET_SWAP_BLOCK------------------------------------
+if(funcNum == GET_SWAP_BLOCK) then
+	alias i R2;
+
+	i = DISK_SWAP_AREA;
+	while(i < DISK_SIZE) do
+		if([DISK_FREE_LIST + i] == 0) then
+			[DISK_FREE_LIST + i] = 1;	//setting found free block in dfl to 1
+			R0 = i;				//returing free block num found
+			return;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	//	return -1 if no free block present
+	R0 = -1;
+	return;
+
+endif;
+

@@ -1,5 +1,243 @@
 //*****
-// PLEASE MODIFY KILL_AL fn of PROCESS MANAGER TO NOT KIL DAMON PROCESS IN THIS STAGE.
+// PLEASE MODIFY KILL_ALL fn of PROCESS MANAGER TO NOT KIL DAMON PROCESS IN THIS STAGE.
 //*****
 
-R14 = 0;
+
+alias functionNum R1;
+alias PID R2;
+
+alias named_local_1 R3;
+alias named_local_2 R4;
+alias named_local_3 R5;
+alias named_local_4 R6;
+alias named_loacl_5 R7;
+alias named_local_6 R8;
+alias named_local_7 R9;
+alias named_local_8 R10;
+alias named_local_9 R11;
+
+
+//----------------------SWAP_OUT-----------------------
+if(functionNum == SWAP_OUT) then
+	alias userAreaPageNum R3;
+	alias victim_pid R4;
+	alias victim_proc_table R5;
+	alias max_tick R6;
+	alias i R7;
+	alias victim_page_table R8;
+	alias tmp R9;
+	alias block_num R10;
+	alias victim_dmt R11;
+
+
+
+	//userAreaPageNum = [PROCESS_TABLE + PID*16 + 11];
+
+
+	//finding vivtim proc preference WT_PROV > WT_SEM > Anything eles > <if still not found terminate>
+	victim_pid = 3;
+	while(victim_pid < (MAX_PROC_NUM-1)) do		
+		victim_proc_table = PROCESS_TABLE + victim_pid*16;
+
+		if([victim_proc_table + 4] == WAIT_PROCESS  &&  [victim_proc_table + 6] == 0) then
+			break;
+		endif;
+	victim_pid = victim_pid + 1;
+	endwhile;
+
+	if(victim_pid == (MAX_PROC_NUM - 1)) then
+		victim_pid = 3;
+		while(victim_pid < (MAX_PROC_NUM-1)) do
+			victim_proc_table = PROCESS_TABLE + victim_pid*16;
+
+			if([victim_proc_table + 4] == WAIT_SEMAPHORE  &&  [victim_proc_table + 6] == 0) then
+				break;
+			endif;
+		victim_pid = victim_pid + 1;
+		endwhile;
+	endif;
+
+
+	if(victim_pid == (MAX_PROC_NUM - 1)) then
+		max_tick = -1;
+
+		i = 3;
+		while(i < (MAX_PROC_NUM-1)) do
+			victim_proc_table = PROCESS_TABLE + i*16;
+
+			if([victim_proc_table + 6]==0  &&  [victim_proc_table + 4] != RUNNING  &&  [victim_proc_table + 4]!=TERMINATED   &&  [victim_proc_table + 4] != ALLOCATED  &&  [victim_proc_table + 0] > max_tick)  then
+
+				max_tick = [victim_proc_table + 0];
+				victim_pid = i;
+
+			endif;
+		i = i + 1;
+		endwhile;
+		victim_proc_table = PROCESS_TABLE + victim_pid*16;
+	endif;
+
+
+	if(victim_pid == 15) then	//if no such proc exists then disabling paging
+		[SYSTEM_STATUS_TABLE + 5] = 0;	//set paging stat to 0 and ret
+		R0 = -1;
+		return;
+	endif;
+
+	victim_page_table = PAGE_TABLE_BASE + 20*victim_pid;
+	victim_dmt = DISK_MAP_TABLE + 10*victim_pid;
+
+	[victim_proc_table + 0] = 0;	//setting tick of vicitim to 0
+
+
+	i = 2;
+	while(i < 10) do		//!!!!!!>>>CHANGE LIMIT IN CASE OF STACK<<<<!!!!!!!!
+		tmp = [victim_page_table + 2*i + 1];
+		if(tmp != 0000 && tmp != 1000 && tmp!=0001 && tmp != 1001 && tmp != 0010 && tmp != 1010 && tmp!=0011 && tmp != 1011) then
+			tmp = victim_page_table + 2*i;
+			if( i>7 || (i<4 && [tmp] != -1  &&  [MEMORY_FREE_LIST + [tmp]] == 1)) then	//if stack or unshared valid heap page
+				multipush (R0,R1,R2,R3,R4,R5,R6,R7,R9,R10);
+				R1 = GET_SWAP_BLOCK;
+				call MOD_2;
+				multipop (R1,R2,R3,R4,R5,R6,R7,R9,R10);
+				block_num = R0;
+				multipop (R0);
+
+				[victim_dmt + i] = block_num;	//storing blk_nm in DMT
+
+				backup;
+				R1 = DISK_STORE;
+				R2 = 15; 	//PID of daemon_process
+				R3 = [tmp];	//passing page_num
+				R4 = block_num;
+				call MOD_4;
+				restore;
+
+			endif;
+
+
+			if([tmp] != -1) then
+				backup;
+				R1 = RELEASE_PAGE;
+				R2 = [tmp];
+				call MOD_2;
+				restore;
+
+				[tmp] = -1;
+				[tmp + 1] = "0000";
+			endif;
+		endif;
+	i = i + 1;
+	endwhile;
+
+	[victim_proc_table + 6] = 1;	//setting SWAP_FLAG to 1 in victim proc table
+
+	tmp = SYSTEM_STATUS_TABLE + 4;	//incerementing SWAP_COUNT
+	[tmp] = [tmp] + 1;
+
+	[SYSTEM_STATUS_TABLE + 5] = 0;	//Setting paging status to 0
+
+	return;
+endif;
+
+
+
+
+
+
+
+//----------------------SWAP_IN-----------------------
+if(functionNum == SWAP_IN) then
+	alias userAreaPageNum R3;
+	alias victim_pid R4;		//
+	alias victim_proc_table R5;
+	alias max_tick R6;		//
+	alias i R7;			//
+	alias victim_page_table R8;	//
+	alias tmp R9;
+	alias free_page_num R10;
+	alias victim_dmt R11;
+
+
+
+	//userAreaPageNum = [PROCESS_TABLE + PID*16 + 11];
+
+
+	max_tick = -1;
+	victim_pid = -1;
+	i = 3;
+	while(i < (MAX_PROC_NUM-1)) do
+		victim_proc_table = PROCESS_TABLE + i*16;
+
+		if([victim_proc_table + 6] == 1  &&  [victim_proc_table + 4] == READY  &&  [victim_proc_table + 0] > max_tick)  then
+
+			max_tick = [victim_proc_table + 0];
+			victim_pid = i;
+
+		endif;
+	i = i + 1;
+	endwhile;
+	victim_proc_table = PROCESS_TABLE + victim_pid*16;
+
+
+	if(victim_pid == -1) then	//if no such proc exists then disabling paging
+		[SYSTEM_STATUS_TABLE + 5] = 0;	//set paging stat to 0 and ret
+		R0 = -1;
+		return;
+	endif;
+
+
+
+	victim_page_table = PAGE_TABLE_BASE + 20*victim_pid;
+	victim_dmt = DISK_MAP_TABLE + 10*victim_pid;
+
+	[victim_proc_table + 0] = 0;	//setting tick of victim to 0
+
+
+	i = 2;
+	while(i < 10) do
+		tmp = victim_dmt + i;
+		if((i<4 || i>7)  &&  [tmp] != -1) then
+
+			multipush (R0,R1,R2,R3,R4,R5,R6,R7,R9,R10);
+			R1 = GET_FREE_PAGE;
+			call MOD_2;
+			multipop (R1,R2,R3,R4,R5,R6,R7,R9,R10);
+			free_page_num = R0;
+			multipop (R0);
+
+			backup;
+			R1 = DISK_LOAD;
+			R2 = 15; 	//PID of daemon_process
+			R3 = free_page_num;	//passing page_num
+			R4 = [tmp];	//passing block num
+			call MOD_4;
+			restore;
+
+
+			backup;		//releasing swap blocks
+			R1 = RELEASE_BLOCK;
+			R2 = [tmp];	//passing blocknum to release
+			call MOD_2;
+			restore;
+
+			[tmp] = -1;	//invalidating DMT entry
+
+			tmp = victim_page_table + 2*i;	//setting up page table for new entries
+			[tmp] = free_page_num;
+			[tmp + 1] = "0110";
+
+		endif;
+	i = i + 1;
+	endwhile;
+
+	[victim_proc_table + 6] = 0;	//setting SWAP_FLAG to 0 in victim proc table
+
+	tmp = SYSTEM_STATUS_TABLE + 4;	//decerementing SWAP_COUNT
+	[tmp] = [tmp] - 1;
+
+	[SYSTEM_STATUS_TABLE + 5] = 0;	//Setting paging status to 0
+
+	return;
+endif;
+
+
