@@ -24,10 +24,12 @@ if((EC != 0) || (userSP == (PTLR*512-1))) then
 		
 	else
 		if(EC == 1) then
+breakpoint;					//!!!!!!!!!!!!!!!!!!!!!!!!<<<<<<<<<<<>>>>>>>DBG<<<<<<<<<<<<<>>>>>>>>>>!!!!!!!!!!!!!!!!!!!
 			print "Ill Instr";
 		endif;
 
 		if(EC == 2) then
+	
 			print "Ill Memaddr";
 		endif;
 

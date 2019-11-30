@@ -20,6 +20,10 @@ SP =  [curr_process_table + 11]*512 - 1;
 sysCallNum = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
 
 
+
+//breakpoint;			//!!!!!!!!!!!!!!!!!!!!!!!!!>>>>>>>>>>>>>>>>>DBG<<<<<<<<<<<<<<<!!!!!!!!!!!!!!!!!!!!!!!
+
+
 //-----------------------------STARTING SYSCALL SPECIFIC IMPLEMENTATION------------------------------
 
 // *****syscallnum 19 for semLock*****

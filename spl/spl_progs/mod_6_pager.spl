@@ -95,10 +95,10 @@ if(functionNum == SWAP_OUT) then
 		if(tmp != 0000 && tmp != 1000 && tmp!=0001 && tmp != 1001 && tmp != 0010 && tmp != 1010 && tmp!=0011 && tmp != 1011) then
 			tmp = victim_page_table + 2*i;
 			if( i>7 || (i<4 && [tmp] != -1  &&  [MEMORY_FREE_LIST + [tmp]] == 1)) then	//if stack or unshared valid heap page
-				multipush (R0,R1,R2,R3,R4,R5,R6,R7,R9,R10);
+				multipush (R0, R1, R2, R3, R4, R5, R6, R7, R9, R10, R11);
 				R1 = GET_SWAP_BLOCK;
 				call MOD_2;
-				multipop (R1,R2,R3,R4,R5,R6,R7,R9,R10);
+				multipop (R1, R2, R3, R4, R5, R6, R7, R9, R10, R11);
 				block_num = R0;
 				multipop (R0);
 
@@ -114,8 +114,8 @@ if(functionNum == SWAP_OUT) then
 
 			endif;
 
-
-			if([tmp] != -1) then
+			if([tmp]!=-1  &&  ((i!=2 && i!=3)  ||  [MEMORY_FREE_LIST + [tmp]]==1)) then
+			//if([tmp] != -1) then
 				backup;
 				R1 = RELEASE_PAGE;
 				R2 = [tmp];
@@ -198,10 +198,10 @@ if(functionNum == SWAP_IN) then
 		tmp = victim_dmt + i;
 		if((i<4 || i>7)  &&  [tmp] != -1) then
 
-			multipush (R0,R1,R2,R3,R4,R5,R6,R7,R9,R10);
+			multipush (R0, R1, R2, R3, R4, R5, R6, R7, R9, R10, R11);
 			R1 = GET_FREE_PAGE;
 			call MOD_2;
-			multipop (R1,R2,R3,R4,R5,R6,R7,R9,R10);
+			multipop (R1, R2, R3, R4, R5, R6, R7, R9, R10, R11);
 			free_page_num = R0;
 			multipop (R0);
 

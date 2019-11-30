@@ -324,6 +324,7 @@ i = 1;
 while(i < MAX_PROC_NUM) do
 	tmp = PROCESS_TABLE + 16*i;
 	[tmp] = 0;		//setting TICK to 0 for all processes
+	[tmp + 6] = 0;
 	[tmp + 4] = TERMINATED;
 i = i + 1;
 endwhile;
@@ -599,4 +600,8 @@ endwhile;
 
 
 
+//PTBR = PAGE_TABLE_BASE;
+//PTLR = 10;
+
+//breakpoint;				//!!!!!!!!!!>>>>>>>>>>>>>DBG<<<<<<<<<<<<!!!!!!!!!!!!!!!
 return;

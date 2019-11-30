@@ -218,7 +218,7 @@ endif;
 //----------------------BUFFERED_WRITE-----------------------
 if(functionNum == BUFFERED_WRITE) then
 
-breakpoint;		//dbg
+//breakpoint;		//dbg
 
 	alias disk_block_num R2;
 	alias offset R3;

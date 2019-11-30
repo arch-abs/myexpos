@@ -46,6 +46,15 @@ load --exec $HOME/myexpos/expl/samples/s_25_a_1.xsm
 load --exec $HOME/myexpos/expl/samples/s_25_a_2.xsm
 load --exec $HOME/myexpos/expl/samples/prevodcn.xsm
 load --exec $HOME/myexpos/expl/samples/nummrgcn.xsm
+load --exec $HOME/myexpos/expl/samples/dlyprm.xsm
+load --exec $HOME/myexpos/expl/samples/12dtfil.xsm
+load --exec $HOME/myexpos/expl/samples/pgm1.xsm
+load --exec $HOME/myexpos/expl/samples/12dtfil2.xsm
+load --exec $HOME/myexpos/expl/samples/pgm2.xsm
+load --exec $HOME/myexpos/expl/samples/merge.xsm
+load --exec $HOME/myexpos/expl/samples/m_store.xsm
+load --exec $HOME/myexpos/expl/samples/m_sort.xsm
+load --exec $HOME/myexpos/expl/samples/m_merge.xsm
 load --exec $HOME/myexpos/expl/samples/ls.xsm
 load --exec $HOME/myexpos/expl/samples/rm.xsm
 load --exec $HOME/myexpos/expl/samples/cp.xsm
@@ -57,4 +66,3 @@ load --shell $HOME/myexpos/expl/samples/shell_3.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --data $HOME/myexpos/expl/samples/sample.dat
-load --data $HOME/myexpos/expl/samples/numbers.dat

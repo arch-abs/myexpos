@@ -18,7 +18,7 @@ newPID = 0;
 
 if([SYSTEM_STATUS_TABLE + 5] != 0) then		//if paging is on 
 
-	if([PROCESS_TABLE + 15*16 + 4] != READY) then	//checking if swapper daemon is blocked
+	if([PROCESS_TABLE + 15*16 + 4] != CREATED  &&  [PROCESS_TABLE + 15*16 + 4] != READY) then	//checking if swapper daemon is blocked
 
 		newPID = 0;
 	else
@@ -30,13 +30,13 @@ else
 	counter = currPID + 1;
 
 	loop_counter = 0;
-	while(loop_counter < 17) do
-		if(counter>=16) then
+	while(loop_counter < 16) do
+		if(counter>=15) then
 			counter = 1;
 		endif;
 	
 		new_process_table = PROCESS_TABLE + counter*16;
-		if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY) then
+		if([new_process_table + 6]==0  &&  ([new_process_table + 4]==CREATED || [new_process_table + 4]==READY)) then
 			newPID = counter;
 			break;
 		endif;

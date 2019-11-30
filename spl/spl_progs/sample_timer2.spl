@@ -37,7 +37,7 @@ if([SYSTEM_STATUS_TABLE + 5] != 0) then
 	//>>>>>IMP<<<<NOTE :: if the above 2 conditions are false the that means that SWAPPING is ON but IDLEhas been scheduled currently because SWAPR DAEMON has been blocked
 
 else
-	if([SYSTEM_STATUS_TABLE + 3] < MEM_LOW) then	//if MEM_FRE_CNT < MEM_LOW
+	if([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then	//if MEM_FRE_CNT < MEM_LOW
 		[SYSTEM_STATUS_TABLE + 5] = SWAP_OUT;
 	else
 		if([SYSTEM_STATUS_TABLE + 4] != 0) then	//if some process are swapped out(cjecking swapped count)
@@ -51,7 +51,7 @@ else
 			i = i + 1;
 			endwhile;
 
-			if(i != 15  || [SYSTEM_STATUS_TABLE + 3] > MEM_HIGH) then	//if some swapped out process TICK > MXA_TIVK or MEM_FRE_CNT > MEM_HIGH
+			if(i != 15  || [SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then	//if some swapped out process TICK > MXA_TIVK or MEM_FRE_CNT > MEM_HIGH
 				[SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
 			endif;
 		endif;
@@ -79,6 +79,8 @@ while(counter < 15) do
 	counter = counter + 1;
 endwhile;
 
+
+//breakpoint;		//!!!!!!!!!!!!!!!!!!!!!!!>>>>>>DBG<<<<<<<<<!!!!!!!!!!!!!!!!!
 
 call MOD_5;
 //if(currentPID == 0) then
